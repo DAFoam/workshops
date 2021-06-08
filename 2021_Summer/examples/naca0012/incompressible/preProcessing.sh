@@ -10,7 +10,7 @@ fi
 echo "Generating mesh.."
 python genAirFoilMesh.py &> logMeshGeneration.txt
 plot3dToFoam -noBlank volumeMesh.xyz >> logMeshGeneration.txt
-autoPatch 30 -overwrite >> logMeshGeneration.txt
+autoPatch 60 -overwrite >> logMeshGeneration.txt
 createPatch -overwrite >> logMeshGeneration.txt
 renumberMesh -overwrite >> logMeshGeneration.txt
 echo "Generating mesh.. Done!"
