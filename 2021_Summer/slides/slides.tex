@@ -379,7 +379,13 @@ After this workshop, you should be able to
   \end{lstlisting}
   \normalsize
 
-  \textbf{NOTE:} If you cannot copy the above command, check this link \url{https://dafoam.github.io/mydoc_get_started_run.html}
+  Once in a Docker container, you should see something like:
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+  dafoamuser@cddb89839078:~/mount$ 
+  \end{lstlisting}
+  \normalsize
 
 \end{frame}
 %---------------------------------------------------------------%
@@ -636,7 +642,7 @@ After this workshop, you should be able to
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{How to read \texttt{opt\_IPOPT.txt}}
 
-\texttt{opt\_IPOPT.txt} is the very first file we need to check during or after the optimization. We want to look at the objective, feasibility (inf\_pr) abd optimality (inf\_du).
+\texttt{opt\_IPOPT.txt} is the very first file we need to check during or after the optimization. We want to look at the objective, feasibility (inf\_pr) and optimality (inf\_du).
 
 A successful optimization should reduce the objective function values, and the feasibility and optimality should drop below the prescribed tolerance (1e-6 for this tutorial).
 
