@@ -8,6 +8,7 @@
 \usepackage{caption} % for figure caption
 \usepackage{animate}
 \usepackage[final]{listings} % for listing source code
+\usefonttheme[onlymath]{serif} % make the equations look better
 % define box for listing
 \definecolor{myblue}{HTML}{4C72B0}
 \definecolor{myred}{HTML}{C54E52}
@@ -36,7 +37,7 @@
 \title[ ]{DAFoam Workshop 2021}
 \subtitle{v2.2.5}
 
-\author{June 9, 2021 \\ }
+\author{Ping He \\ ~ \\June 9, 2021 }
 
 
 \date[June 9, 2021]{}
@@ -77,7 +78,7 @@ After this workshop, you should be able to
 \begin{itemize}
   \setlength\itemsep{1em}
  \item Get familiar with the high-fidelity design optimization framework MACH-Aero.
- \item Describe the details in the OpenFOAM and DAFoam configurations files (e.g., controlDict, fvSchemes, runScript.py).
+ \item Describe the details in the OpenFOAM and DAFoam configuration files (e.g., controlDict, fvSchemes, runScript.py).
  \item Run aerodynamic optimization with DAFoam.
  \item Adjust the configuration files for a new case
 \end{itemize}
@@ -142,7 +143,7 @@ After this workshop, you should be able to
   \begin{itemize}
     \setlength\itemsep{1em}
     \item OpenFOAM: \textbf{Open}-source \textbf{F}ield \textbf{O}peration \textbf{A}nd \textbf{M}anipulation
-    \item OpenFOAM is written in C++ and contains libraries to facilitate numerical operation of field variables (e.g., solving linear equation, computing partial derivative terms in a PDE)
+    \item OpenFOAM is written in C++ and contains libraries to facilitate numerical operation of field variables (e.g., solving linear equations, computing partial derivatives in a PDE)
     \item Building on these libraries, OpenFOAM includes more than 80 solvers (binary executives) that solve a wide range of PDEs.
     \item OpenFOAM also contains a wide range of utilities for pre- and post-processing (e.g., generate unstructured meshes, check mesh quality)
   \end{itemize}
@@ -192,7 +193,7 @@ After this workshop, you should be able to
   MACH-Aero is a high-fidelity design optimization framework developed by the MDOLab at University of Michigan. MACH-Aero is open source at: \url{https://github.com/mdolab/MACH-Aero}
   \begin{figure}
     \includegraphics[width=\linewidth]{images/MACH-Aero-XDSM.pdf} 
-    \caption{XDSM diagram for the MACH-Aero framework. The diagonal blocks are the modules (libraries) used in an optimization. All the modules are wrapped with Python.}
+    \caption{XDSM diagram for the MACH-Aero framework. The diagonal blocks are the modules (libraries) used in an optimization. The off-diagonal blocks are date transfer. All the modules are wrapped with Python.}
   \end{figure}
 \end{frame}
 %---------------------------------------------------------------%
@@ -262,7 +263,7 @@ After this workshop, you should be able to
 \begin{frame}{Primal solution module}
   \textbf{Goal}: Receive the update volume mesh and compute the objective and constraint functions, as well as state variables (e.g., velocity and pressure). For fluid mechanics, it is also called flow simulation.
 
-  We wrap OpenFOAM's built in solvers, e.g., simpleFoam, into Cython libraries and call them from Python. 
+  We use Cython to compile OpenFOAM's solvers, e.g., simpleFoam, into C++ libraries and call them from Python. We do \textbf{NOT} use the OpenFOAM's built in binary solvers in optimization.
   \vspace{-0.1in}
   \begin{figure}
     \includegraphics[width=\linewidth]{images/DPW6Flow.png}
@@ -274,9 +275,9 @@ After this workshop, you should be able to
 
 %---------------------------------------------------------------%
 \begin{frame}{Adjoint solution module}
-  \textbf{Goal}: Receive the state variables and compute the total derivative of objective functions with respect to all design variables
+  \textbf{Goal}: Receive the state variables and compute the total derivatives of objective functions with respect to all design variables
 
-  We implemented efficient adjoint derivative computation in DAFoam.
+  We implemented efficient derivative computation in DAFoam using the Jacobian-free adjoint approach. The derivative is machine-precision accurate.
   \vspace{-0.1in}
   \begin{figure}
   \includegraphics[width=\linewidth]{images/JacobianFreeDiagram.pdf}
@@ -390,8 +391,8 @@ After this workshop, you should be able to
   \begin{itemize}
     \setlength\itemsep{0.2em}
      \item Start a Docker container (a light-weight virtual machine)
-     \item Mount (link) your current directory to the container’s /home/dafoamuser/mount directory
-     \item Login to /home/dafoamuser/mount as dafoamuser
+     \item Mount (link) your computer's current directory to the container’s /home/dafoamuser/mount directory
+     \item Login the container as dafoamuser and go to the mounted dir
      \item Set the relevant DAFoam environmental variables. 
   \end{itemize}
   A few notes:  \vspace{-0.1in}
@@ -521,7 +522,7 @@ After this workshop, you should be able to
 
   The optimization log will be printed to the screen and saved to \texttt{logOpt.txt}. In addition, the optimizer will write a separate log to the disk. For the IPOPT optimizer we use in this tutorial, it is \texttt{opt\_IPOPT.txt}.
 
-  The optimization took about 10 minutes and converged in 17 steps.
+  The optimization converged in 17 steps and took about 10 minutes.
 
 \end{frame}
 %---------------------------------------------------------------%
@@ -585,7 +586,7 @@ After this workshop, you should be able to
 \begin{frame}{How to visualize the results (5/7)}
   You can scroll your mouse wheel to zoom-in and zoom-out, and hold your middle wheel, you can pan the view.
 
-  We also recommend enable the \texttt{Camera Parallel Projection} option by first click this icon on the left properties bar
+  We also recommend enable the \texttt{Camera Parallel Projection} option by first clicking this icon on the left properties bar
   \begin{figure}
     \centering
     \includegraphics[width=0.3in]{images/paraview_gear.png}
@@ -762,7 +763,7 @@ $\dfrac{\dif f}{\dif \boldsymbol{x}}= \dfrac{\partial f}{\partial \boldsymbol{x}
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{How to read \texttt{logOpt.txt} (3/8)}
 
-  Once solveCL is done, the optimization starts. It first prints the initial design variables, constraints, bounds etc
+  Once solveCL is done, the optimization starts. It first prints the initial design variables, constraints, bounds, etc.
   \scriptsize
   \begin{lstlisting}
   Optimization Problem -- opt
@@ -853,7 +854,7 @@ $\dfrac{\dif f}{\dif \boldsymbol{x}}= \dfrac{\partial f}{\partial \boldsymbol{x}
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{How to read \texttt{logOpt.txt} (6/8)}
 
-  When the flow solution converges, it will print the objective and constraint function values.
+  After the flow solution converges, it will print the objective and constraint function values.
   \scriptsize
   \begin{lstlisting}
   Time = 200
@@ -999,7 +1000,7 @@ $\dfrac{\dif f}{\dif \boldsymbol{x}}= \dfrac{\partial f}{\partial \boldsymbol{x}
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{The \texttt{deformedFFD.dat} file}
-  We can load the optimized airfoil geometry with deformedFFD\_018.dat in Paraview. The deformedFFD\_018.dat is in Tecplot format.
+  We can load the optimized airfoil geometry with the deformed FFD (deformedFFD\_018.dat) in Paraview. The deformedFFD\_018.dat is in Tecplot format.
   \begin{figure}
     \includegraphics[width=0.9\linewidth]{images/deformed_FFD.png} 
     \caption{Deformed FFD points and airfoil shape at the last optimization iteration.}
@@ -1070,7 +1071,7 @@ naca0012/incompressible
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{The \texttt{0} folder (1/2)}
-  The \texttt{0} folder contains files for all the state variables and their initial and boundary values are defined in these files
+  The \texttt{0} folder contains files for all the state variables, and their initial and boundary values are defined in these files
   \small
   \begin{lstlisting}
   0
@@ -1154,7 +1155,7 @@ naca0012/incompressible
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{The \texttt{constant} folder (1/3)}
-  The \texttt{constant} folder contains mesh, flow and turbulence property definition.
+  The \texttt{constant} folder contains mesh, flow and turbulence property definitions.
   \small
   \begin{lstlisting}
   constant
@@ -1213,6 +1214,7 @@ naca0012/incompressible
   nu 1.5e-5;  // define the molecular viscosity
   \end{lstlisting}
 
+  \normalsize
   The \texttt{turbulenceProperties} file defines turbulence model 
   \small
   \begin{lstlisting}
@@ -1431,11 +1433,11 @@ naca0012/incompressible
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{The \texttt{preProcessing.sh} script (3/4)}
-  Then, we run autoPatch to automatically split the boundary patches. Here the argument 30 means split the mesh based on 30 degree feature angle (lower this value will generate more patches). Essentially, this call will modify the \texttt{constant/polyMesh/boundary} file and generate new patches called auto0, auto1, auto2, etc.
+  Then, we run autoPatch to automatically split the boundary patches. Here the argument 60 means split the mesh based on 60 degree feature angle (lower this value will generate more patches). Essentially, this call will modify the \texttt{constant/polyMesh/boundary} file and generate new patches called auto0, auto1, auto2, etc.
   \scriptsize
   \lstset{ language=bash }
   \begin{lstlisting}
-  autoPatch 30 -overwrite >> log.meshGeneration
+  autoPatch 60 -overwrite >> log.meshGeneration
   \end{lstlisting}
 
   \vspace{-0.1in}
@@ -2195,7 +2197,7 @@ Refer to \texttt{examples/naca0012/subsonic}, differences in runScript.py:
   mpirun -np 4 python runScript.py | tee 2>&1 logOpt.txt
   \end{lstlisting}
 
-  \textbf{NOTE: Always run \texttt{./Allclean.sh} before running a new job!}x
+  \textbf{NOTE:} Always run \texttt{./Allclean.sh} before running a new job!
 
 \end{frame}
 %---------------------------------------------------------------%
@@ -2287,7 +2289,7 @@ Refer to \texttt{examples/naca0012/subsonic}, differences in runScript.py:
 
   The \texttt{runScript.py} script is similar to the airfoil (subsonic) case. The main differene is that: 
 
-  1. In the design variable setup, we create a reference axis (blue line) aligned with z and located at 25\% chordwise (xFraction=0.25). Here nTwists=6 is the number of FFD layers in z. This ref axis will be used to twist the wing at thoses 6 spanwise locations
+  1. In the design variable setup, we create a reference axis (blue line) aligned with z and located at 25\% chordwise (xFraction=0.25). Here nTwists=6 is the number of FFD layers in z. This ref axis will be used to twist the wing at these 6 spanwise locations
   
   \footnotesize
   \lstset{ language=bash }
@@ -2305,7 +2307,7 @@ Refer to \texttt{examples/naca0012/subsonic}, differences in runScript.py:
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{The \texttt{runScript.py} script (2/4)}
 
-  2. Similar to the alpha(val,geo) function, we define a twist(val, geo) function to twist the wing. Here we loop over all the spanwise locations except for the root (nTiwst-1) and assign the design variable values from \texttt{val} to \texttt{geo.rot\_z["bodyAxis"].coef[i]}. Then the \texttt{geo} object will actually twist the wing during optimization. Note that the first element in \texttt{val}, i.e., \texttt{val[0]} is the 2nd twist to the root, but \texttt{geo.rot\_z["bodyAxis"].coef[0]} is the root twist, that is why we use \texttt{val[i-1]}.
+  2. Similar to the alpha(val,geo) function, we define a twist(val, geo) function to twist the wing. Here we loop over all the spanwise locations except for the root and assign the design variable values from \texttt{val} to \texttt{geo.rot\_z["bodyAxis"].coef[i]}. Then the \texttt{geo} object will actually twist the wing during optimization. Note that the first element in \texttt{val}, i.e., \texttt{val[0]} is the 2nd twist to the root, but \texttt{geo.rot\_z["bodyAxis"].coef[0]} is the root twist, that is why we use \texttt{val[i-1]}.
   
   \footnotesize
   \lstset{ language=python }
