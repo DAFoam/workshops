@@ -1,0 +1,168 @@
+\documentclass{bredelebeamer}
+\usepackage{graphicx}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{hyperref}
+\usepackage{setspace}
+%\usepackage{media9} % for movies
+%\usepackage{multimedia} % for movies
+\usepackage{caption} % for figure caption
+\usepackage{animate}
+\usepackage[final]{listings} % for listing source code
+\usefonttheme[onlymath]{serif} % make the equations look better
+% define box for listing
+\definecolor{myblue}{HTML}{4C72B0}
+\definecolor{myred}{HTML}{C54E52}
+\definecolor{mygreen}{HTML}{56A968}
+\lstset{
+      language=C++,
+      basicstyle=\ttfamily,
+      frame=single,
+      columns=flexible,
+      breaklines=true,
+      commentstyle=\color{mygreen},
+      keywordstyle = \color{myblue},
+      stringstyle  = \color{orange},
+      }
+\usepackage[absolute,overlay]{textpos} 
+\setlength{\parskip}{0.9em}
+\setbeamertemplate{navigation symbols}{}
+\newcommand*\dif{\mathop{}\!\mathrm{d}}
+%%%%%%%%% some settings
+\captionsetup[figure]{labelformat=empty} % remove the prefix 'figure' for figure caption
+\captionsetup[table]{labelformat=empty} % remove the prefix 'table' for figure caption
+\setbeamertemplate{headline}{} %%%%%%%%%%% remove header %%%%%%%%%%%
+\setbeamerfont{frametitle}{size=\Large} %% title font size
+
+%%%%%%%%%% title
+\title[ ]{DAFoam Workshop 2022}
+\subtitle{v3.0.0}
+
+\author{Ping He and Bernardo Pacini \\ ~ \\June 8, 2022 }
+
+
+\date[June 8, 2022]{}
+
+% define varblock
+\newenvironment<>{varblock}[2][.9\textwidth]{%
+  \setlength{\textwidth}{#1}
+  \begin{actionenv}#3%
+    \def\insertblocktitle{#2}%
+    \par%
+    \usebeamertemplate{block begin}}
+  {\par%
+    \usebeamertemplate{block end}%
+  \end{actionenv}}
+
+
+\setbeamercolor{title}{fg=Black,bg=White!0}
+\setbeamercolor{frametitle}{fg=Black,bg=White!0}
+%gets rid of footer
+%will override 'frame number' instruction above
+%comment out to revert to previous/default definitions
+\setbeamertemplate{footline}[page number]
+
+\begin{document}
+
+%---------------------------------------------------------------%
+\begin{frame}
+  \titlepage
+\end{frame}
+
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}{Objectives}
+
+After this workshop, you should be able to
+\begin{itemize}
+  \setlength\itemsep{1em}
+ \item Get familiar with the new features and interfaces in DAFoam v3
+ \item Run aerodynamic \& aerostructural optimizations with DAFoam v3
+ \item Modify/add DAFoam's C++ and Python codes for a new feature
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{A few notes}
+
+  \begin{itemize}
+    \setlength\itemsep{1em}
+   \item We assume you are familiar with DAFoam v2.
+   \item This workshop has \textbf{hands-on} examples.
+   \item \textbf{Stop} us at any time if you have questions.
+   \item The online meeting will be \textbf{recorded}.
+   \item All the materials are available at \url{https://github.com/dafoam/workshops}.
+\end{itemize}
+  
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+%---------------------------------------------------------------%
+
+\section{DAFoam v3}
+\renewcommand{\arraystretch}{2}
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large DAFoam v3 Introduction
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{What is DAFoam?}
+
+  {\large DAFoam: \textbf{D}iscrete \textbf{A}djoint with Open\textbf{FOAM}}
+
+  ~
+
+  DAFoam develops an efficient discrete adjoint method to perform high-fidelity multidisciplinary design optimization. DAFoam has the following features:
+  \center \normalsize
+  \begin{itemize}
+    \setlength\itemsep{1em}
+    \item It uses a popular open-source package OpenFOAM (\url{www.openfoam.com}) for multiphysics analysis
+    \item It implements a Jacobian-free discrete adjoint approach with competitive speed, scalability, and accuracy
+    \item It has a convenient Python interface to couple with OpenMDAO (\url{www.openmdao.org}) for multidisciplinary design optimization
+  \end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{What is new in DAFoam v3?}
+  DAFoam v3 is a major release that integrated DAFoam and OpenMDAO for multidisciplinary design optimization (MDO) through the OpenMDAO/Mphys interface
+
+  \begin{itemize}
+    \setlength\itemsep{1em}
+    \item It developed a new Python interface (mphys/mphys\_dafoam.py) to Mphys and OpenMDAO for MDO
+    \item Most of the settings are same as v2, but DAFoam v3 uses very different runScript.py because it is coupled with OpenMDAO.
+    \item You need to update dependency versions for MDO in v3. Check the DAFoam website (\url{https://dafoam.github.io}).
+    \item DAFoam v3 is compatible with all v2 run scripts.
+  \end{itemize}
+  
+\end{frame}
+%---------------------------------------------------------------%
+
+\section{DAFoam code development}
+\renewcommand{\arraystretch}{2}
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large DAFoam code structure
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[plain]{}
+  \Huge \centering
+  Thank you!
+\end{frame}
+%---------------------------------------------------------------%
+
+\end{document}
