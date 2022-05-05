@@ -94,7 +94,8 @@ After this workshop, you should be able to
 \end{frame}
 %---------------------------------------------------------------%
 
-\section{DAFoam v3}
+% ************************************************************************************
+\section{DAFoam v3 Introduction}
 \renewcommand{\arraystretch}{2}
 
 %---------------------------------------------------------------%
@@ -137,9 +138,27 @@ After this workshop, you should be able to
 \end{frame}
 %---------------------------------------------------------------%
 
+
+% ************************************************************************************
+\section{An OpenMDAO tutorial}
+\renewcommand{\arraystretch}{2}
+
 %---------------------------------------------------------------%
 \begin{frame}{}
-  \center \Large Aerodynamic optimization \\ with DAFoam v3
+  \center \Large An OpenMDAO tutorial
+
+  \normalsize
+  For more advanced usage, refer to OpenMDAO's documentation at \\ 
+  \url{https://openmdao.org/newdocs/versions/latest/main.html}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Optimizing a two-component system}
+  \begin{figure}
+    \includegraphics[width=\linewidth]{images/xdsm.pdf} 
+    \caption{Design structure diagram for the two-component system. The red component is implicit and the green one is explicit. The design variable is $x$ and the objective function is $f$. $y$ is the solution from the implicit component and is passed to the explicit component as the input to compute $f$.}
+  \end{figure}
 \end{frame}
 %---------------------------------------------------------------%
 
@@ -147,7 +166,7 @@ After this workshop, you should be able to
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{Download DAFoam Docker image and examples}
 
-  The easiest way to run DAFoam optimizations is to use the DAFoam Docker image
+  The most general way to run the above case is to use the DAFoam Docker image, which has OpenMDAO installed already.
 
   First, install Docker following this website: \\ \vspace{0.1in} \small \url{https://dafoam.github.io/mydoc_get_started_download_docker.html} \normalsize
 
@@ -155,7 +174,7 @@ After this workshop, you should be able to
   \footnotesize
   \lstset{ language=bash }
   \begin{lstlisting}
-  docker --version
+docker --version
   \end{lstlisting}
   \normalsize
      
@@ -164,7 +183,7 @@ After this workshop, you should be able to
   \footnotesize
   \lstset{ language=bash }
   \begin{lstlisting}
-  docker pull dafoam/opt-packages:v3.0.0
+docker pull dafoam/opt-packages:v3.0.0
   \end{lstlisting}
   \normalsize
   
@@ -182,7 +201,7 @@ After this workshop, you should be able to
 
   \footnotesize
   \begin{lstlisting}
-  cd $HOME/workshops/2022_Summer/examples/naca0012
+cd $HOME/workshops/2022_Summer/examples/openmdao_example
   \end{lstlisting}
   \normalsize
   
@@ -190,9 +209,9 @@ After this workshop, you should be able to
 
   \footnotesize
   \begin{lstlisting}
-  docker run -it --rm -u dafoamuser --mount \
-  "type=bind,src=$(pwd),target=/home/dafoamuser/mount" \ 
-  -w /home/dafoamuser/mount dafoam/opt-packages:v3.0.0 bash
+docker run -it --rm -u dafoamuser --mount \
+"type=bind,src=$(pwd),target=/home/dafoamuser/mount" \ 
+-w /home/dafoamuser/mount dafoam/opt-packages:v3.0.0 bash
   \end{lstlisting}
   \normalsize
 
@@ -200,9 +219,9 @@ After this workshop, you should be able to
 
   \footnotesize
   \begin{lstlisting}
-  docker run -it --rm -u dafoamuser --mount \
-  "type=bind,src=%cd%,target=/home/dafoamuser/mount" \
-  -w /home/dafoamuser/mount dafoam/opt-packages:v3.0.0 bash
+docker run -it --rm -u dafoamuser --mount \
+"type=bind,src=%cd%,target=/home/dafoamuser/mount" \
+-w /home/dafoamuser/mount dafoam/opt-packages:v3.0.0 bash
   \end{lstlisting}
   \normalsize
 
@@ -210,7 +229,7 @@ After this workshop, you should be able to
   \footnotesize
   \lstset{ language=bash }
   \begin{lstlisting}
-  dafoamuser@cddb89839078:~/mount$ 
+dafoamuser@cddb89839078:~/mount$ 
   \end{lstlisting}
   \normalsize
 
@@ -218,7 +237,223 @@ After this workshop, you should be able to
 %---------------------------------------------------------------%
 
 
-\section{DAFoam code development}
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Run the case}
+
+  Once in the docker container, use the \texttt{ls} command to check if you are in the correct directory. You should see something like this:
+
+  \footnotesize
+  \begin{lstlisting}
+dafoamuser@cddb89839078:~/mount$ ls
+n2.html  runScript.py  xdsm.pdf  xdsm.py
+  \end{lstlisting}
+  \normalsize
+
+  Finally, you can run the case with this command:
+
+  \footnotesize
+  \begin{lstlisting}
+python runScript.py
+  \end{lstlisting}
+  \normalsize
+
+  Expected output:
+
+  \footnotesize
+  \begin{lstlisting}
+dafoamuser@cddb89839078:~/mount$ python runScript.py 
+Optimization terminated successfully    (Exit mode 0)
+            Current function value: [0.87500003]
+            Iterations: 11
+            Function evaluations: 11
+            Gradient evaluations: 11
+Optimization Complete
+-----------------------------------
+f_opt: [0.87500003]
+x_opt: [5.54015542]
+  \end{lstlisting}
+  \normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{An alternative option without Docker}
+
+If you already have a Python 3 on your computer, you can directly run the OpenMDAO case without using the Docker. First, load your Python 3 environment, and run this command in your terminal to install OpenMDAO
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+pip install openmdao==3.16.0
+  \end{lstlisting}
+  \normalsize
+     
+  Then go to the tutorial folder:
+
+  \footnotesize
+  \begin{lstlisting}
+cd $HOME/workshops/2022_Summer/examples/openmdao_example
+  \end{lstlisting}
+  \normalsize
+
+  And run the case:
+
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+python runScript.py
+  \end{lstlisting}
+  \normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{N2 diagram}
+  After the case is finished, you should see the N2 diagram (n2.html) for this case. The runScript.py file essential sets the components and their data transfer (connection) for the optimization.
+  \begin{figure}
+    \includegraphics[width=0.8\linewidth]{images/example_n2.pdf} 
+    \caption{The N2 diagram for the two-component optimization.}
+  \end{figure}
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (1/3)}
+  \footnotesize
+  \lstset{ language=python }
+  \begin{lstlisting}
+class ImplicitEqn(om.ImplicitComponent):
+    def setup(self):
+        # define input
+        self.add_input("x", val=1.0)
+        # define output
+        self.add_output("y", val=1.0)
+
+    def setup_partials(self):
+        # Finite difference all partials.
+        self.declare_partials("*", "*", method="fd")
+
+    def apply_nonlinear(self, inputs, outputs, residuals):
+        # get the input and output and compute the residual
+        # R = e^(-x * y) - y
+        # NOTE: we use [0] here because OpenMDAO assumes all inputs
+        # and outputs are arrays. If the input is a scalar, OpenMDAO
+        # will create an array that has size 1, so to get its value
+        # we have to use [0]
+        x = inputs["x"][0]
+        y = outputs["y"][0]
+        residuals["y"] = np.exp(-x * y) - y
+  \end{lstlisting}
+  \normalsize
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (2/3)}
+  \footnotesize
+  \lstset{ language=python }
+  \begin{lstlisting}
+class ImplicitEqn(om.ImplicitComponent):
+    def setup(self):
+        # define input
+        self.add_input("x", val=1.0)
+        # define output
+        self.add_output("y", val=1.0)
+
+    def setup_partials(self):
+        # Finite difference all partials.
+        self.declare_partials("*", "*", method="fd")
+
+    def apply_nonlinear(self, inputs, outputs, residuals):
+        # get the input and output and compute the residual
+        # R = e^(-x * y) - y
+        # NOTE: we use [0] here because OpenMDAO assumes all inputs
+        # and outputs are arrays. If the input is a scalar, OpenMDAO
+        # will create an array that has size 1, so to get its value
+        # we have to use [0]
+        x = inputs["x"][0]
+        y = outputs["y"][0]
+        residuals["y"] = np.exp(-x * y) - y
+  \end{lstlisting}
+  \normalsize
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (3/3)}
+  \footnotesize
+  \lstset{ language=python }
+  \begin{lstlisting}
+# create an OpenMDAO problem object
+prob = om.Problem()
+# now add the implicit component defined above to prob
+prob.model.add_subsystem("ImplicitEqn", ImplicitEqn(), promotes=["*"])
+# add the objective explicit component defined above to prob
+prob.model.add_subsystem("Objective", Objective(), promotes=["*"],)
+# set the linear/nonlinear equation solution for the implicit component
+prob.model.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
+prob.model.linear_solver = om.ScipyKrylov()
+# set the design variable and objective function
+prob.model.add_design_var("x", lower=-10, upper=10)
+prob.model.add_objective("f", scaler=1)
+# setup the optimizer
+prob.driver = om.ScipyOptimizeDriver()
+prob.driver.options["optimizer"] = "SLSQP"
+# setup the problem
+prob.setup()
+# write the n2 diagram
+om.n2(prob, show_browser=False, outfile="n2.html")
+# run the optimization
+prob.run_driver()
+  \end{lstlisting}
+  \normalsize
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Summary}
+  \begin{itemize}
+    \setlength\itemsep{1em}
+   \item To use OpenMDAO for optimizations, one needs to write classes for each component in the system, define their inputs and outputs, and implement the way to compute the outputs (explicit components) or residuals (implicit components). 
+   \item Then one needs to add these components to the optimization problem in the run script, set their connection, set the design variables, objective and constraint functions, and run the optimization.
+   \item A new open-source interface Mphys was recently developed (\url{https://github.com/openmdao/mphys}) to rewrite the MACH-Aero modules' interfaces (e.g., pyGeo, IDWarp) into the OpenMDAO component format. 
+   \item DAFoam v3 has a Python interface to OpenMDAO/Mphys (dafoam/mphys/mphys\_dafoam.py). So to run optimizations with DAFoam v3, one needs to use the new run script that sets the components, data transfer, design variables, objective and constraint functions in the optimization.
+  \end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+
+% ************************************************************************************
+\section{Aerodynamic optimization}
+\renewcommand{\arraystretch}{2}
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large Aerodynamic optimization
+\end{frame}
+%---------------------------------------------------------------%
+
+
+
+
+% ************************************************************************************
+\section{Aerostructural optimization}
+\renewcommand{\arraystretch}{2}
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large Aerostructural optimization
+\end{frame}
+%---------------------------------------------------------------%
+
+
+% ************************************************************************************
+\section{Add new features to DAFoam}
 \renewcommand{\arraystretch}{2}
 
 %---------------------------------------------------------------%
