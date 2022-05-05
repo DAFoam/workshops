@@ -422,7 +422,7 @@ prob.run_driver()
    \item To use OpenMDAO for optimizations, one needs to write classes for each component in the system, define their inputs and outputs, and implement the way to compute the outputs (explicit components) or residuals (implicit components). 
    \item Then one needs to add these components to the optimization problem in the run script, set their connection, set the design variables, objective and constraint functions, and run the optimization.
    \item A new open-source interface Mphys was recently developed (\url{https://github.com/openmdao/mphys}) to rewrite the MACH-Aero modules' interfaces (e.g., pyGeo, IDWarp) into the OpenMDAO component format. 
-   \item DAFoam v3 has a Python interface to OpenMDAO/Mphys (dafoam/mphys/mphys\_dafoam.py). So to run optimizations with DAFoam v3, one needs to use the new run script that sets the components, data transfer, design variables, objective and constraint functions in the optimization.
+   \item DAFoam v3 has a Python interface to OpenMDAO/Mphys (dafoam/mphys/mphys\_dafoam.py). So to run optimizations with DAFoam v3, one needs to use the new run script that sets the components, data transfer, design variables, objective and constraint functions in the optimization (see next section).
   \end{itemize}
 \end{frame}
 %---------------------------------------------------------------%
@@ -472,15 +472,7 @@ prob.run_driver()
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{Run the case}
 
-  First, use the \texttt{cd} command to go the workshop folder on your local computer. The command may look like:
-
-  \footnotesize
-  \begin{lstlisting}
-cd $HOME/workshops/2022_Summer/examples/naca10012
-  \end{lstlisting}
-  \normalsize
-  
-  Use the command in Slide 11 to start a Docker container. Then, use the \texttt{ls} command to check if you are in the correct directory.
+  First, use the \texttt{cd} command to go the workshops/2022\_Summer/examples/naca10012 folder. Then, use the command in Slide 11 to start a Docker container. Next, use the \texttt{ls} command to check if you are in the correct directory.
   \footnotesize
   \lstset{ language=bash }
   \begin{lstlisting}
@@ -502,14 +494,280 @@ Allclean.sh  constant  paraview.foam      profiles          system
   \footnotesize
   \lstset{ language=bash }
   \begin{lstlisting}
-mpirun -np 2 python runScript.py
+mpirun -np 2 python runScript.py | tee 2>&1 logOpt.txt
+  \end{lstlisting}
+  \normalsize
+
+  The optimization log will be printed to the screen and saved to \texttt{logOpt.txt}. In addition, the optimizer will write a separate log to the disk \texttt{opt\_IPOPT.txt}.
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{How to post-process the optimization results?}
+
+  This has been covered in the 2021 workshop, refer to Slides 29 to 47 from 
+  \url{https://github.com/DAFoam/workshops/blob/main/2021_Summer/slides/2021_Summer_Workshop.pdf}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{NACA0012 N2 diagram}
+
+  \begin{figure}
+    \includegraphics[width=\linewidth]{images/naca0012_n2.pdf} 
+    \caption{The N2 diagram for the NACA0012 aerodynamic optimization.}
+  \end{figure}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (1/10)}
+Most of the settings in DAFoam v3 are same as v2. The main difference is that DAFoam v3 uses a very different runScript.py
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+# import modules
+import os
+import argparse
+import numpy as np
+from mpi4py import MPI
+import openmdao.api as om
+from mphys.multipoint import Multipoint
+from dafoam.mphys import DAFoamBuilder, OptFuncs
+from mphys.scenario_aerodynamic import ScenarioAerodynamic
+from pygeo.mphys  import OM_DVGEOCOMP
+from pygeo import geo_utils
+    
+# input arguments for runScript.py    
+parser = argparse.ArgumentParser()
+# which optimizer to use. Options are: IPOPT (default), SLSQP, and SNOPT
+parser.add_argument("-optimizer", help="optimizer to use", type=str, default="IPOPT")
+# which task to run. Options are: opt (default), runPrimal, runAdjoint, checkTotals
+parser.add_argument("-task", help="type of run to do", type=str, default="opt")
+args = parser.parse_args()
   \end{lstlisting}
   \normalsize
 
 \end{frame}
 %---------------------------------------------------------------%
 
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (2/10)}
+  The input parameters, daOptions, meshOptions are same as DAFoam v2. Next, we need to set a Multipoint Top class. We need to add all the components in the \texttt{setup} function.
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+# Top class to setup the optimization problem
+class Top(Multipoint):
+    def setup(self):
+        # create the builder to initialize the DASolvers
+        dafoam_builder = DAFoamBuilder(daOptions, meshOptions, scenario="aerodynamic")
+        dafoam_builder.initialize(self.comm)
+        # add the design variable component 
+        self.add_subsystem("dvs", om.IndepVarComp(), promotes=["*"])
+        # add the mesh component
+        self.add_subsystem("mesh", dafoam_builder.get_mesh_coordinate_subsystem())
+        # add the geometry component (FFD)
+        self.add_subsystem("geometry", OM_DVGEOCOMP(ffd_file="FFD/wingFFD.xyz"))
+        # add a scenario and pass the builder to it
+        self.mphys_add_scenario("cruise", ScenarioAerodynamic(aero_builder=dafoam_builder))
+        # need to do manually connection
+        self.connect("mesh.x_aero0", "geometry.x_aero_in")
+        self.connect("geometry.x_aero0", "cruise.x_aero")
+  \end{lstlisting}
+  \normalsize
+  \end{frame}
+%---------------------------------------------------------------%
 
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (3/10)}
+Next, we need to do the proper connection and configurations for the above components in the \texttt{configure} function. We also need to set the design variables, objective and constraint functions. The overall process is similar to v2 but it needs to use a different syntax to set up.
+    \footnotesize
+    \lstset{ language=bash }
+    \begin{lstlisting}
+def configure(self):
+    # configure and setup perform a similar function, i.e., initialize 
+    # the optimization. The configure will be run after setup
+    # add the objective function to the cruise scenario
+    self.cruise.aero_post.mphys_add_funcs()
+    # get the surface coordinates from the mesh component
+    points = self.mesh.mphys_get_surface_mesh()
+    # add pointset to the geometry component
+    self.geometry.nom_add_discipline_coords("aero", points)
+    # set the triangular points to the geo component for geo constraints
+    tri_points = self.mesh.mphys_get_triangulated_surface()
+    self.geometry.nom_setConstraintSurface(tri_points)
+  \end{lstlisting}
+  \normalsize
+  \end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (4/10)}
+Next, we define an angle of attack (aoa) function to change the far field velocity, and add it to the "cruise" scenario as the design variable.
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+# define an angle of attack function to change the U direction at the far field
+def aoa(val, DASolver):
+    aoa = val[0] * np.pi / 180.0
+    U = [float(U0 * np.cos(aoa)), float(U0 * np.sin(aoa)), 0]
+    # we need to update the U value only
+    DASolver.setOption("primalBC", {"U0": {"value": U}})
+    DASolver.updateDAOption()
+
+# pass this aoa function to the cruise group
+self.cruise.coupling.solver.add_dv_func("aoa", aoa)
+self.cruise.aero_post.add_dv_func("aoa", aoa)
+  \end{lstlisting}
+  \normalsize
+  \end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (5/10)}
+We can then add the shape as the design variable by choosing all the FFD points. The setup is similar to v2.
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+# select the FFD points to move
+pts = self.geometry.DVGeo.getLocalIndex(0)
+indexList = pts[:, :, :].flatten()
+PS = geo_utils.PointSelect("list", indexList)
+nShapes = self.geometry.nom_addGeoDVLocal(dvName="shape", pointSelect=PS)
+  \end{lstlisting}
+  \normalsize
+  \end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (6/10)}
+Because it is a symmetric case, we need to impose the symmetry constraint for the k=0 and k=1 level FFD points. The setup is very similar to v2.
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+# setup the symmetry constraint to link the y displacement between k=0 and k=1
+nFFDs_x = pts.shape[0]
+nFFDs_y = pts.shape[1]
+indSetA = []
+indSetB = []
+for i in range(nFFDs_x):
+    for j in range(nFFDs_y):
+        indSetA.append(pts[i, j, 0])
+        indSetB.append(pts[i, j, 1])
+self.geometry.nom_addLinearConstraintsShape("linearcon", indSetA, indSetB, factorA=1.0, factorB=-1.0)
+  \end{lstlisting}
+  \normalsize
+  \end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (7/10)}
+Similar to v2, we need to set leList and teList for the volume and thickness constraint. We also use the LETE constraint to fix the leading edge and trailing edge.
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+# setup the volume and thickness constraints
+leList = [[1e-4, 0.0, 1e-4], [1e-4, 0.0, 0.1 - 1e-4]]
+teList = [[0.998 - 1e-4, 0.0, 1e-4], [0.998 - 1e-4, 0.0, 0.1 - 1e-4]]
+self.geometry.nom_addThicknessConstraints2D("thickcon", leList, teList, nSpan=2, nChord=10)
+self.geometry.nom_addVolumeConstraint("volcon", leList, teList, nSpan=2, nChord=10)
+# add the LE/TE constraints
+self.geometry.nom_add_LETEConstraint("lecon", volID=0, faceID="iLow", topID="k")
+self.geometry.nom_add_LETEConstraint("tecon", volID=0, faceID="iHigh", topID="k")
+  \end{lstlisting}
+  \normalsize
+  \end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (8/10)}
+Now, we can add the shape and aoa variables as the output for the "dvs" component and use them as the design variables. Note that we need to manually connect dvs' output to the cruise and geometry component. See the N2 diagram.
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+# add the design variables to the dvs component's output
+self.dvs.add_output("shape", val=np.array([0] * nShapes))
+self.dvs.add_output("aoa", val=np.array([aoa0]))
+# manually connect the dvs output to the geometry and cruise
+self.connect("aoa", "cruise.aoa")
+self.connect("shape", "geometry.shape")
+
+# define the design variables to the top level
+self.add_design_var("shape", lower=-1.0, upper=1.0, scaler=1.0)
+self.add_design_var("aoa", lower=0.0, upper=10.0, scaler=1.0)
+  \end{lstlisting}
+  \normalsize
+  \end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (9/10)}
+Finally, we add the objective and constraint functions.
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+# add objective and constraints to the top level
+self.add_objective("cruise.aero_post.CD", scaler=1.0)
+self.add_constraint("cruise.aero_post.CL", equals=CL_target, scaler=1.0)
+self.add_constraint("geometry.thickcon", lower=0.5, upper=3.0, scaler=1.0)
+self.add_constraint("geometry.volcon", lower=1.0, scaler=1.0)
+self.add_constraint("geometry.tecon", equals=0.0, scaler=1.0, linear=True)
+self.add_constraint("geometry.lecon", equals=0.0, scaler=1.0, linear=True)
+self.add_constraint("geometry.linearcon", equals=0.0, scaler=1.0, linear=True)
+  \end{lstlisting}
+  \normalsize
+  \end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{runScript.py details (10/10)}
+Once the Top class is created, we pass it as the OpenMDAO problem's model. Then, we can run the OpenMDAO's \texttt{driver} for optimization.
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+prob = om.Problem()
+prob.model = Top()
+prob.setup(mode="rev") # reverse mode AD
+om.n2(prob, show_browser=False, outfile="mphys.html")
+# initialize the optimization function
+optFuncs = OptFuncs(daOptions, prob)
+# use pyOptSparse to run optimization
+prob.driver = om.pyOptSparseDriver()
+prob.driver.options["optimizer"] = args.optimizer
+# ........... pyOptSparse optimizer setup .........
+# set the output option
+prob.driver.options["debug_print"] = ["nl_cons", "objs", "desvars"]
+# prob.driver.options["print_opt_prob"] = True
+prob.driver.hist_file = "OptView.hst"
+# select task to run
+if args.task == "opt":
+    # solve CL by changing aoa
+    optFuncs.findFeasibleDesign(["cruise.aero_post.CL"], ["aoa"], targets=[CL_target])
+    # run the optimization
+    prob.run_driver()
+  \end{lstlisting}
+  \normalsize
+  \end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Summary}
+    \begin{itemize}
+      \setlength\itemsep{1em}
+      \item The runScript.py is essentially an OpenMDAO run script. So we suggest you first learn how OpenMDAO works by going through the OpenMDAO's documentation (\url{https://openmdao.org/newdocs/versions/latest/main.html}).
+     \item We can use the above script to run any airfoil aerodynamic optimization with DAFoam v3. If you want to change the flight conditions, FFD points, airfoil profiles, refer to the DAFoam FAQ. \url{https://dafoam.github.io/mydoc_get_started_faq.html}. Note that these changes are for v2 but they also work for v3.
+     \item For 3D wing aerodynamic optimization, refer to the run script \url{https://github.com/DAFoam/tutorials/blob/main/MACH_Tutorial_Wing/runScript_Aero.py}
+     \item For multipoint optimization, refer to the run script \url{https://github.com/DAFoam/tutorials/blob/main/NACA0012_Airfoil/multipoint/runScript.py}
+    \end{itemize}
+  \end{frame}
+  %---------------------------------------------------------------%
+  
 
 % ************************************************************************************
 \section{Aerostructural optimization}
