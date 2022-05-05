@@ -143,6 +143,81 @@ After this workshop, you should be able to
 \end{frame}
 %---------------------------------------------------------------%
 
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Download DAFoam Docker image and examples}
+
+  The easiest way to run DAFoam optimizations is to use the DAFoam Docker image
+
+  First, install Docker following this website: \\ \vspace{0.1in} \small \url{https://dafoam.github.io/mydoc_get_started_download_docker.html} \normalsize
+
+  Once done, verify the installation by running:
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+  docker --version
+  \end{lstlisting}
+  \normalsize
+     
+  Then run this command to download the DAFoam Docker image: 
+
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+  docker pull dafoam/opt-packages:v3.0.0
+  \end{lstlisting}
+  \normalsize
+  
+  Finally, download the workshop examples at: \\ \vspace{0.1in}
+  \small \texttt{\url{https://github.com/dafoam/workshops}}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Start a Docker container}
+
+  If you use Linux or MacOS, open a terminal and use the \texttt{cd} command to go this folder on your local computer. If you put the workshops folder in the \$HOME directory, the command may look like:
+
+  \footnotesize
+  \begin{lstlisting}
+  cd $HOME/workshops/2022_Summer/examples/naca0012
+  \end{lstlisting}
+  \normalsize
+  
+  Then, run this command to start a Docker container:
+
+  \footnotesize
+  \begin{lstlisting}
+  docker run -it --rm -u dafoamuser --mount \
+  "type=bind,src=$(pwd),target=/home/dafoamuser/mount" \ 
+  -w /home/dafoamuser/mount dafoam/opt-packages:v3.0.0 bash
+  \end{lstlisting}
+  \normalsize
+
+  If you use Windows, open the Prompt Command terminal, use the \texttt{cd} command to go to the above folder, and run this command: \\ \vspace{0.1in}
+
+  \footnotesize
+  \begin{lstlisting}
+  docker run -it --rm -u dafoamuser --mount \
+  "type=bind,src=%cd%,target=/home/dafoamuser/mount" \
+  -w /home/dafoamuser/mount dafoam/opt-packages:v3.0.0 bash
+  \end{lstlisting}
+  \normalsize
+
+  Once in a Docker container, you should see something like:
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+  dafoamuser@cddb89839078:~/mount$ 
+  \end{lstlisting}
+  \normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
 \section{DAFoam code development}
 \renewcommand{\arraystretch}{2}
 
