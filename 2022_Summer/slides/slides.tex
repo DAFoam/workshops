@@ -440,6 +440,76 @@ prob.run_driver()
 
 
 
+%---------------------------------------------------------------%
+\begin{frame}{Summary of the NACA0012 subsonic case}
+
+  \begin{table}
+    \renewcommand{\arraystretch}{1.5}
+    \small
+    \centering
+    \label{tab:implemented_models}
+    \begin{tabular}{llllllllllll}
+    \hline
+    Optimizer   & IPOPT \\
+    Flow and adjoint solvers  & DARhoSimpleFoam  \\
+    Geometry  & NACA0012 \\
+    Mesh  & 4\,032 cells\\
+    Objective function  & $C_d$ \\
+    Design variables & 20 FFDs and $\alpha$ \\
+    Constraint & $C_l=0.5$, thickness, volume, TE/LE \\
+    $U_\infty$  & 100 m/s \\
+    $Re$  & 6.7$\times10^6$\\
+    Turbulence Model  & Spalart--Allmaras\\
+     \hline
+    \end{tabular}
+  \end{table}
+
+  You can find the case settings in workshops/2022\_Summer/examples/naca0012.
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Run the case}
+
+  First, use the \texttt{cd} command to go the workshop folder on your local computer. The command may look like:
+
+  \footnotesize
+  \begin{lstlisting}
+cd $HOME/workshops/2022_Summer/examples/naca10012
+  \end{lstlisting}
+  \normalsize
+  
+  Use the command in Slide 11 to start a Docker container. Then, use the \texttt{ls} command to check if you are in the correct directory.
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+dafoamuser@bd114f3f7c94:~/mount$ ls
+0.orig       FFD       genAirFoilMesh.py  preProcessing.sh  runScript.py
+Allclean.sh  constant  paraview.foam      profiles          system
+  \end{lstlisting}
+  \normalsize
+
+  Next, run this command to generate the mesh:
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+./preProcessing.sh
+  \end{lstlisting}
+  \normalsize
+
+  Finally, run the optimization with 2 cores.
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+mpirun -np 2 python runScript.py
+  \end{lstlisting}
+  \normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
 
 % ************************************************************************************
 \section{Aerostructural optimization}
