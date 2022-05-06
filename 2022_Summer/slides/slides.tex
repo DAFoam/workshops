@@ -795,7 +795,6 @@ if args.task == "opt":
     \item OpenFOAM layer details
     \item Cython layer details
     \item Python layer details
-    \item OpenFOAM/C++ coding basics
     \item Add a new parameter
     \item Add a new objective/constraint function
     \item Add a new design variable
@@ -1219,6 +1218,211 @@ cdef class pyDASolvers:
  \item The Python layer can call OpenFOAM layer's member; however, the OpenFOAM layer can not call Python layer's members.
 \end{itemize}
   
+\end{frame}
+%---------------------------------------------------------------%
+
+
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large Python layer details
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Folder structure in dafoam}
+The Python layer codes are in the dafoam folder, see below. You may also see a few *.so libraries after compiling DAFoam. The two main Python layer files are pyDAFoam.py and mphys\_dafoam.py
+\footnotesize
+\lstset{ language=bash }
+\begin{lstlisting}
+dafoam
+  __init__.py    mphys/mphys_dafoam.py     optFuncs.py    
+  pyDAFoam.py    scripts
+\end{lstlisting}
+\normalsize
+
+The scripts folder contains some useful utility python functions, e.g., to convert the plot3d to tecplot format, to transform or rotate a stl file.
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{pyDAFoam.py overview: PYDAFOAM}
+PYDAFOAM is the main entry point to pyDAFoam.py, and it will call initSolver() method from the OpenFOAM layer to initialize variables for both primal and adjoint solvers.
+\footnotesize
+\lstset{ language=python }
+\begin{lstlisting}
+class PYDAFOAM(object):
+  def __init__(self, comm=None, options=None):
+      """
+      Initialize class members
+      """
+      self.version = __version__
+      # name
+      self.name = "PYDAFOAM"
+      # initialize options for adjoints
+      self._initializeOptions(options)
+      # check if the combination of options is valid.
+      self._checkOptions()
+      # initialize comm for parallel communication
+      self._initializeComm(comm)
+      ......
+      # register solver names and set their types
+      self._solverRegistry()
+      # initialize the pySolvers
+      self.solverInitialized = 0
+      self._initSolver()
+\end{lstlisting}
+\normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{pyDAFoam.py overview: DAOPTION}
+The DAOPTION class in pyDAFoam.py defines the parameters for DAFoam optimization and assign inital values to them.
+\footnotesize
+\lstset{ language=python }
+\begin{lstlisting}
+class DAOPTION(object):
+  def __init__(self, comm=None, options=None):
+      self.solverName = "DASimpleFoam"
+      self.primalMinResTol = 1.0e-8
+      self.primalBC = {}
+\end{lstlisting}
+\normalsize
+
+Then it will be used by the PYDAFOAM class from:
+
+\footnotesize
+\lstset{ language=python }
+\begin{lstlisting}
+def _getDefOptions(self):
+    # initialize the DAOPTION object
+    daOption = DAOPTION()
+    defOpts = {}
+    # assign all the attribute of daOptoin to defOpts
+    for key in vars(daOption):
+        value = getattr(daOption, key)
+        defOpts[key] = [type(value), value]
+    return defOpts
+\end{lstlisting}
+\normalsize
+
+Note that the above \texttt{getDefOptions} will be called by \texttt{initializeOptions} from the PYDAFOAM's \texttt{init()} function
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{mphys\_dafoam.py overview: DAFoamBuilder}
+The DAFoamBuilder is the main entry point for mphys\_dafoam.py. It will call PYDAFOAM class from pyDAFoam.py to initialize OpenFOAM layer variables, and also return a DAFoamGroup (see next slide)
+\footnotesize
+\lstset{ language=python }
+\begin{lstlisting}
+class DAFoamBuilder(Builder):
+  # api level method for all builders
+  def initialize(self, comm):
+      # initialize the PYDAFOAM class, defined in pyDAFoam.py
+      self.DASolver = PYDAFOAM(options=self.options, comm=comm)
+      # always set the mesh
+      mesh = USMesh(options=self.mesh_options, comm=comm)
+      self.DASolver.setMesh(mesh)
+  # api level method for all builders
+  def get_coupling_group_subsystem(self, scenario_name=None):
+      dafoam_group = DAFoamGroup(
+          solver=self.DASolver,
+          use_warper=self.warp_in_solver,
+          struct_coupling=self.struct_coupling,
+          prop_coupling=self.prop_coupling,
+      )
+      return dafoam_group
+\end{lstlisting}
+\normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{mphys\_dafoam.py overview: DAFoamGroup}
+The DAFoamGroup will add relevant component for analysis and optimization. It will also add the DAFoamSolver component (see next slide).
+\footnotesize
+\lstset{ language=python }
+\begin{lstlisting}
+class DAFoamGroup(Group):
+  def setup(self):
+      # add the IDWarp component for mesh deformation
+      if self.use_warper:
+          self.add_subsystem(
+              "deformer",
+              DAFoamWarper(solver=self.DASolver),
+              promotes_inputs=["x_aero"],
+              promotes_outputs=["dafoam_vol_coords"],
+          )
+      # add the solver implicit component from DAFoamSolver
+      self.add_subsystem(
+          "solver",
+          DAFoamSolver(solver=self.DASolver, prop_coupling=self.prop_coupling),
+          promotes_inputs=["*"],
+          promotes_outputs=["dafoam_states"],
+      )
+
+\end{lstlisting}
+\normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{mphys\_dafoam.py overview: DAFoamSolver}
+The DAFoamSolver implements the way to compute the adjoint matrix-vector product using AD and solve the adjoint equation. DAFoamSolver will call the OpenFOAM layer functions.
+\footnotesize
+\lstset{ language=python }
+\begin{lstlisting}
+class DAFoamSolver(ImplicitComponent):
+  def apply_linear(self, inputs, outputs, d_inputs, d_outputs, d_residuals, mode):
+      # calculate the matrix vector product: [dR/dW]^T * psi
+      prodVec = DASolver.xvVec.duplicate()
+      prodVec.zeroEntries()
+      DASolver.solverAD.calcdRdXvTPsiAD(DASolver.xvVec, DASolver.wVec, resBarVec, prodVec)
+      xVBar = DASolver.vec2Array(prodVec)
+      d_inputs["dafoam_vol_coords"] += xVBar
+
+  def solve_linear(self, d_outputs, d_residuals, mode):
+      # solve adjoint equation using DASolver's solveLinearEqn func
+      DASolver.dRdWTPC = PETSc.Mat().create(self.comm)
+      DASolver.solver.calcdRdWT(DASolver.xvVec, DASolver.wVec, 1, DASolver.dRdWTPC)
+      DASolver.ksp = PETSc.KSP().create(self.comm)
+      DASolver.solverAD.createMLRKSPMatrixFree(DASolver.dRdWTPC, DASolver.ksp)
+      DASolver.solverAD.solveLinearEqn(DASolver.ksp, dFdW, self.psi)
+
+\end{lstlisting}
+\normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{mphys\_dafoam.py overview: DAFoamFunctions}
+The partial derivatives for the objective functions, e.g., dF/dW or dF/dXv are computed in the DAFoamFunctions class
+\footnotesize
+\lstset{ language=python }
+\begin{lstlisting}
+class DAFoamFunctions(ExplicitComponent):
+  def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
+      dFdXv.zeroEntries()
+      # call OpenFOAM layer's function to compute dF/dXv
+      DASolver.solverAD.calcdFdXvAD(
+          DASolver.xvVec, DASolver.wVec, objFuncName.encode(), "dummy".encode(), dFdXv
+      )
+      xVBar = DASolver.vec2Array(dFdXv)
+      d_inputs["dafoam_vol_coords"] += xVBar
+\end{lstlisting}
+\normalsize
+
 \end{frame}
 %---------------------------------------------------------------%
 
