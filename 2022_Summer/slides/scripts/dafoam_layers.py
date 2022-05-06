@@ -22,7 +22,6 @@ x.connect("Cython", "Python", "\\textrm{pyDASolver*.so}, \\textrm{pyColoring*.so
 x.add_process(["OpenFOAM", "Cython", "Python"], arrow=True)
 
 x.add_output("OpenFOAM", "\\textrm{OpenFOAM/sharedLibs/}", side="right")
-x.add_output("Cython", "\\textrm{dafoam/}", side="right")
-x.add_output("Python", "\\textrm{runScript.py}", side="right")
+x.add_output("Python", "\\textrm{site-packages/dafoam/}", side="right")
 
 x.write("dafoam_layers")
