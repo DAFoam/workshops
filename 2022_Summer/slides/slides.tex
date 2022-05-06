@@ -148,7 +148,8 @@ After this workshop, you should be able to
   \center \Large An OpenMDAO tutorial
 
   \normalsize
-  For more advanced usage, refer to OpenMDAO's documentation at \\ 
+  Before using DAFoam v3, we need to learn how OpenMDAO works.
+  Refer to OpenMDAO's documentation for more advanced usage. \\ 
   \url{https://openmdao.org/newdocs/versions/latest/main.html}
 \end{frame}
 %---------------------------------------------------------------%
@@ -156,7 +157,7 @@ After this workshop, you should be able to
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{Optimizing a two-component system}
   \begin{figure}
-    \includegraphics[width=\linewidth]{images/xdsm.pdf} 
+    \includegraphics[width=\linewidth]{images/example_xdsm.pdf} 
     \caption{Design structure diagram for the two-component system. The red component is implicit and the green one is explicit. The design variable is $x$ and the objective function is $f$. $y$ is the solution from the implicit component and is passed to the explicit component as the input to compute $f$.}
   \end{figure}
 \end{frame}
@@ -201,7 +202,7 @@ docker pull dafoam/opt-packages:v3.0.0
 
   \footnotesize
   \begin{lstlisting}
-cd $HOME/workshops/2022_Summer/examples/openmdao_example
+cd $HOME/workshops/2022_Summer/examples/openmdao
   \end{lstlisting}
   \normalsize
   
@@ -246,7 +247,7 @@ dafoamuser@cddb89839078:~/mount$
   \footnotesize
   \begin{lstlisting}
 dafoamuser@cddb89839078:~/mount$ ls
-n2.html  runScript.py  xdsm.pdf  xdsm.py
+runScript.py
   \end{lstlisting}
   \normalsize
 
@@ -294,7 +295,7 @@ pip install openmdao==3.16.0
 
   \footnotesize
   \begin{lstlisting}
-cd $HOME/workshops/2022_Summer/examples/openmdao_example
+cd $HOME/workshops/2022_Summer/examples/openmdao
   \end{lstlisting}
   \normalsize
 
@@ -312,7 +313,7 @@ python runScript.py
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{N2 diagram}
-  After the case is finished, you should see the N2 diagram (n2.html) for this case. The runScript.py file essential sets the components and their data transfer (connection) for the optimization.
+  After the case is finished, you should see a N2 diagram (n2.html) generated for this case. The runScript.py file essential sets the components and their data transfer (connection) for the optimization.
   \begin{figure}
     \includegraphics[width=0.8\linewidth]{images/example_n2.pdf} 
     \caption{The N2 diagram for the two-component optimization.}
@@ -766,7 +767,7 @@ if args.task == "opt":
      \item For multipoint optimization, refer to the run script \url{https://github.com/DAFoam/tutorials/blob/main/NACA0012_Airfoil/multipoint/runScript.py}
     \end{itemize}
   \end{frame}
-  %---------------------------------------------------------------%
+%---------------------------------------------------------------%
   
 
 % ************************************************************************************
@@ -786,7 +787,32 @@ if args.task == "opt":
 
 %---------------------------------------------------------------%
 \begin{frame}{}
-  \center \Large DAFoam code structure
+  \center \Large Add new features to DAFoam
+  \normalsize
+  \begin{itemize}
+    \setlength\itemsep{1em}
+    \item DAFoam source code structure
+    \item text
+  \end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large DAFoam source code structure
+
+  \large There are three code layers:  \\ 
+  OpenFOAM, Cython, and Python
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{OpenFOAM layer}
+  The C++ layer contains classes for the actual adjoint computation and is written based on OpenFOAM. The C++ source codes are in dafoam/src/adjoint.
+  \begin{itemize}
+    \setlength\itemsep{1em}
+    \item When DAFoam is compiled, it will generate dynamic libraries for three different conditions: incompressible, compressible, and solid. In other words, it will compile three .so files. Refer to dafoam/src/adjoint/Make/files\_Incompressible for which files are compiled for the incompressible case.
+  \end{itemize}
 \end{frame}
 %---------------------------------------------------------------%
 

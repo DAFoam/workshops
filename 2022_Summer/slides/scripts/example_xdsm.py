@@ -19,4 +19,4 @@ x.add_process(["ImplicitEqn", "Objective"],arrow=True)
 
 x.add_output("Objective", "f", side="right")
 
-x.write("xdsm")
+x.write("example_xdsm")
