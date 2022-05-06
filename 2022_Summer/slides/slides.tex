@@ -800,18 +800,42 @@ if args.task == "opt":
 %---------------------------------------------------------------%
 \begin{frame}{}
   \center \Large DAFoam source code structure
-
-  \large There are three code layers:  \\ 
-  OpenFOAM, Cython, and Python
 \end{frame}
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
+\begin{frame}{Three code layers: OpenFOAM, Cython, and Python}
+\begin{figure}
+\includegraphics[width=1.05\linewidth]{images/dafoam_layers.pdf} 
+\caption{There are three code layers in DAFoam: OpenFOAM, Cython, and Python. Each layer takes source code or libraries as the input in the vertical direction and output libraries to the horizontal direction.}
+\end{figure}
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
 \begin{frame}[fragile]{OpenFOAM layer}
-  The C++ layer contains classes for the actual adjoint computation and is written based on OpenFOAM. The C++ source codes are in dafoam/src/adjoint.
+  The OpenFOAM layer contains C++ classes for the OpenFOAM primal solvers and the discrete adjoint classes to compute derivatives. The OpenFOAM layer's source codes are in dafoam/src/adjoint.
   \begin{itemize}
     \setlength\itemsep{1em}
-    \item When DAFoam is compiled, it will generate dynamic libraries for three different conditions: incompressible, compressible, and solid. In other words, it will compile three .so files. Refer to dafoam/src/adjoint/Make/files\_Incompressible for which files are compiled for the incompressible case.
+    \item When DAFoam is compiled with the original mode, it will generate dynamic libraries for three different conditions: incompressible, compressible, and solid. In other words, it will compile three libDAFoam*.so files. Refer to dafoam/src/adjoint/Make/files\_Incompressible for which files are compiled for the incompressible case
+    \item When DAFoam is compiled with the ADR (reverse-mode AD) or ADF (forward-mode AD) modes, it will generate six more libDAFoam*.so libraries.
+    \item These libraries will be saved to dafoam/OpenFOAM/sharedLibs
+    \item To avoid file IO during optimization, we rewrite all the OpenFOAM solvers (binary executives) as libraries such that we can call them from Python
+  \end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Cython layer}
+The compiled libDAFoam*.so from the OpenFOAM layer are pure C++ libraries, so they cannot be directly called from Python. We need to wrap these libraries using Cython. The Cython layer source codes are in src/pyDASolvers
+  \begin{itemize}
+    \setlength\itemsep{1em}
+    \item The Cython layer solver will use the libDAFoam*.so libraries from the OpenFOAM layer
+    \item When running the \texttt{Allmake} command, both OpenFOAM and Cython libraries will be compiled
+    \item Similar to the OpenFOAM layer, we will compile three sets of Cython libraries for both pyDASolver*.so and pyColoringSolver*.so. These libraries will be saved to dafoam/dafoam folder and will be copied to the miniconda3/lib/python3.8/site-packages/dafoam folder, when running \texttt{pip install .}
+    \item pyDASolver*.so and pyColoringSolver*.so are the Cython libraries callable from the Python layer
+    
   \end{itemize}
 \end{frame}
 %---------------------------------------------------------------%
