@@ -791,15 +791,23 @@ if args.task == "opt":
   \normalsize
   \begin{itemize}
     \setlength\itemsep{1em}
-    \item DAFoam source code structure
-    \item text
+    \item DAFoam source code structure: overview
+    \item OpenFOAM layer details
+    \item Cython layer details
+    \item Python layer details
+    \item OpenFOAM/C++ coding basics
+    \item Add a new parameter
+    \item Add a new objective/constraint function
+    \item Add a new design variable
+    \item Add a new model or boundary condition
+    \item Add a new solver
   \end{itemize}
 \end{frame}
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
 \begin{frame}{}
-  \center \Large DAFoam source code structure
+  \center \Large DAFoam source code structure: overview
 \end{frame}
 %---------------------------------------------------------------%
 
@@ -814,7 +822,7 @@ if args.task == "opt":
 
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{OpenFOAM layer}
+\begin{frame}[fragile]{OpenFOAM layer overview}
   The OpenFOAM layer contains C++ classes for the OpenFOAM primal solvers and the discrete adjoint classes to compute derivatives. The OpenFOAM layer's source codes are in dafoam/src/adjoint.
   \begin{itemize}
     \setlength\itemsep{1em}
@@ -827,16 +835,390 @@ if args.task == "opt":
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{Cython layer}
+\begin{frame}[fragile]{Cython layer overview}
 The compiled libDAFoam*.so from the OpenFOAM layer are pure C++ libraries, so they cannot be directly called from Python. We need to wrap these libraries using Cython. The Cython layer source codes are in src/pyDASolvers
   \begin{itemize}
     \setlength\itemsep{1em}
     \item The Cython layer solver will use the libDAFoam*.so libraries from the OpenFOAM layer
     \item When running the \texttt{Allmake} command, both OpenFOAM and Cython libraries will be compiled
-    \item Similar to the OpenFOAM layer, we will compile three sets of Cython libraries for both pyDASolver*.so and pyColoringSolver*.so. These libraries will be saved to dafoam/dafoam folder and will be copied to the miniconda3/lib/python3.8/site-packages/dafoam folder, when running \texttt{pip install .}
+    \item Similar to the OpenFOAM layer, we will compile three sets of Cython libraries for both pyDASolver*.so and pyColoringSolver*.so. These libraries will be saved to dafoam/dafoam folder.
     \item pyDASolver*.so and pyColoringSolver*.so are the Cython libraries callable from the Python layer
     
   \end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Python layer overview}
+When running \texttt{pip install .}, all the files (pyDASolver*.so, pyDAFoam.py, mphys\_dafoam.py, etc.) in the dafoam/dafoam folder will be copied to miniconda3/lib/python3.8/site-packages/dafoam, and they become importable from runScript.py
+
+\begin{itemize}
+  \setlength\itemsep{1em}
+    \item runScript.py interacts with the Python layer only, it can not directly access the OpenFOAM or Cython libraries.
+    \item The Python layer's main entry point is the \texttt{DAFoamBuilder} class from mphys\_dafoam.py. So in runScript.py we import DAFoamBuilder. DAFoamBuilder then call other Python interfaces from pyDAFoam.py
+    \item pyDAFoam.py actually imports pyDASolvers*.so (solve primal and adjoint) and pyColoringSolver*.so (calculate coloring) in its \texttt{\_\_initSolver()} function
+    \item Other moudles (e.g., pyGeo, IDWarp) have their own Python interfaces written in Mphys, so runScript.py imports them too  
+  \end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large OpenFOAM layer details
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Folder structure in dafoam/src/adjoint}
+The source codes for the OpenFOAM layer are in src/adjoint. Each subfolder defines a class.
+\footnotesize
+\lstset{ language=bash }
+\begin{lstlisting}
+src/adjoint
+  Allclean           DAIndex            DAOption           DAUtility
+  Allmake            DAJacCon           DAPartDeriv        Make
+  DACheckMesh        DALinearEqn        DARegDb            boundaryConditions
+  DAColoring         DAModel            DAResidual         lnInclude
+  DAField            DAMotion           DASolver           models
+  DAFvSource         DAObjFunc          DAStateInfo
+\end{lstlisting}
+\normalsize
+
+If a class has no child classes, it reads
+\footnotesize
+\lstset{ language=bash }
+\begin{lstlisting}
+src/adjoint/DAIndex
+  DAIndex.C DAIndex.H
+\end{lstlisting}
+\normalsize
+
+Otherwise, it reads.
+\footnotesize
+\lstset{ language=bash }
+\begin{lstlisting}
+src/adjoint/DAObjFunc
+  DAObjFunc.C       DAObjFuncForce.C    DAObjFuncMoment.C
+  DAObjFunc.H       DAObjFuncForce.H    DAObjFuncMoment.H
+  ...........       ................    .................
+\end{lstlisting}
+\normalsize
+
+Here DAObjFuncForce is one of the child classes for DAObjFunc.
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{OpenFOAM layer's main entry point: DASolver class}
+The DASolver class is the main interface for the OpenFOAM layer.
+\footnotesize
+\lstset{ language=bash }
+\begin{lstlisting}
+src/adjoint/DASolver
+  DALaplacianFoam         DARhoSimpleFoam             DASolver.C
+  DAPimpleDyMFoam         DAScalarTransportFoam       DASolver.H
+  DAPimpleFoam            DASimpleFoam                DATurboFoam
+  DAPisoFoam              DASimpleTFoam
+  DARhoSimpleCFoam        DASolidDisplacementFoam
+\end{lstlisting}
+\normalsize
+
+In DASolver.H, we define primal and adjoint functions to interface with the Python layer, e.g., initSolver, solvePrimal, calcdRdWT, solveLinearEqn. The adjoint functions are universal to all solvers. solvePrimal() is a virtual function that needs to be defined by each child class/solver. 
+
+For example, the child class DASimpleFoam defines its own solvePrimal function that follows the exact same solution process as OpenFOAM's original simpleFoam solver.
+
+\footnotesize
+\lstset{ language=bash }
+\begin{lstlisting}
+src/adjoint/DASolver/DASimpleFoam
+  DASimpleFoam.C       UEqnSimple.H         createRefsSimple.H
+  DASimpleFoam.H       createFieldsSimple.H pEqnSimple.H
+\end{lstlisting}
+\normalsize
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{DASolver$-$DASimpleFoam example (1/4)}
+\texttt{initSolver()} and \texttt{solvePrimal()} are the main virtual functions implemented in DASimpleFoam.C.
+\footnotesize
+\lstset{ language=c++ }
+\begin{lstlisting}
+void DASimpleFoam::initSolver(){
+  Info << "Initializing fields for DASimpleFoam" << endl;
+  // get the reference for runTime and mesh objects these two variables 
+  // have been initialized in DASolver constructor: DASolver.C line 48
+  Time& runTime = runTimePtr_();
+  fvMesh& mesh = meshPtr_();
+  // initialize field variables
+  #include "createSimpleControlPython.H"
+  #include "createFieldsSimple.H"
+  // initialize the adjoint classes, e.g., DAIndex, DAOption, DATurbo
+  // NOTE: this file is in dafoam/src/adjoiont/include
+  #include "createAdjointIncompressible.H"
+  // initialize checkMesh object
+  daCheckMeshPtr_.reset(new DACheckMesh(daOptionPtr_(), runTime, mesh));
+  // initialize adjoint linear equation solution object
+  daLinearEqnPtr_.reset(new DALinearEqn(mesh, daOptionPtr_()));
+  // initialize the objective function
+  this->setDAObjFuncList();
+
+  .... }
+\end{lstlisting}
+\normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{DASolver$-$DASimpleFoam example (2/4)}
+  \texttt{solvePrimal()} uses xvVec (volume coordinates) as the input and calculates wVec (state variables). xvVec and wVec are Petsc vectors.
+\footnotesize
+\lstset{ language=c++ }
+\begin{lstlisting}
+void DASimpleFoam::solvePrimal(const Vec xvVec, Vec wVec){
+  // create the references for the pointer objects
+  #include "createRefsSimple.H"
+  #include "createFvOptions.H"
+  // change the run status, this is needed for the fvSource object
+  daOptionPtr_->setOption<word>("runStatus", "solvePrimal");
+  // call correctNut, this is equivalent to turbulence->validate();
+  daTurbulenceModelPtr_->updateIntermediateVariables();
+  Info << "\nStarting time loop\n" << endl;
+  // deform the mesh based on the xvVec, we essentially assign the values 
+  // in xvVec to the OpenFOAM's mesh coordinates
+  this->pointVec2OFMesh(xvVec);
+  // check mesh quality, if the mesh quality fails, do not run the primal
+  label meshOK = this->checkMesh();
+  if (!meshOK)
+  {
+    this->writeFailedMesh();
+    return 1;
+  }
+  .... }
+\end{lstlisting}
+\normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{DASolver$-$DASimpleFoam example (3/4)}
+The main loop, which is same as the origional simpleFoam solver
+\footnotesize
+\lstset{ language=c++ }
+\begin{lstlisting}
+  while (this->loop(runTime))
+  {
+      printToScreen = this->isPrintTime(runTime, printInterval);
+      if (printToScreen){
+          Info << "Time = " << runTime.timeName() << nl << endl;}
+      p.storePrevIter();
+      // --- Pressure-velocity SIMPLE corrector
+      #include "UEqnSimple.H"
+      #include "pEqnSimple.H"
+      laminarTransport.correct();
+      daTurbulenceModelPtr_->correct();
+      // we print the residual to screen every 100 steps
+      if (printToScreen)
+      {
+          daTurbulenceModelPtr_->printYPlus();
+          this->printAllObjFuncs();
+          Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
+               << "  ClockTime = " << runTime.elapsedClockTime() << " s" << nl << endl;
+      }
+      runTime.write();
+  }
+\end{lstlisting}
+\normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{DASolver$-$DASimpleFoam example (4/4)}
+
+After the simulation is done, we need to do the following
+\footnotesize
+\lstset{ language=c++ }
+\begin{lstlisting}
+
+  // write the intermediate fields
+  this->writeAssociatedFields();
+  // calculate the converged primal residual norm
+  this->calcPrimalResidualStatistics("print");
+  // primal converged, assign the OpenFoam fields to the state vec wVec
+  this->ofField2StateVec(wVec);
+  // write the deformed mesh to files
+  mesh.write();
+  Info << "End\n"<< endl;
+
+  // check if the primal residual drops to the prescribed tolerance
+  // if not, return failed for this primal run
+  return this->checkResidualTol();
+\end{lstlisting}
+\normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Adjoint functions in DASolver}
+
+Essentially, any adjoint functions we want to call in the Python layer need to be defined in DASolver.C and DASolver.H. Here are just a few examples.
+\footnotesize
+\lstset{ language=c++ }
+\begin{lstlisting}
+// function to compute dF/dW for the adjoint equation rhs
+void DASolver::calcdFdWAD(
+  const Vec xvVec,
+  const Vec wVec,
+  const word objFuncName,
+  Vec dFdW)
+{
+  .....
+}
+
+// function to extract force from the wing surface for aerostructural
+void DASolver::getForces(Vec fX, Vec fY, Vec fZ, Vec pointList)
+{
+  .....
+}
+
+// return the objective function value givne the function name
+scalar DASolver::getObjFuncValue(const word objFuncName)
+{
+  ......
+}
+\end{lstlisting}
+\normalsize
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Original, reverse- and forward-AD OpenFOAM codes}
+
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+\item To faciliate the optimization, we have used an operator-overloading automatic differentiation (AD) tool called CoDiPack (\url{https://github.com/SciCompKL/CoDiPack}) to differentiate the OpenFOAM's source code. The AD version of OpenFOAM is avaiable at \url{https://github.com/DAFoam/OpenFOAM-v1812-AD}
+
+\item When differentiated, the OpenFOAM calculation becomes $\sim$3 times slower than the original version. Therefore, we use the AD version for the adjoint but not for running the primal.
+
+\item To enable this, we have compiled OpenFOAM into three versions: original, ADR (reverse AD), and ADF (forward AD).
+
+\item The forward- and reverse-AD versions of OpenFOAM libraries have names end with ADR and ADF. For example, we will have finiteVolume.so, finiteVolumeADR.so, and finiteVolumeADF.so. With this treatment, we can allow loading both original and ADR libraries during the optimization in the Python layer.
+
+\end{itemize}
+
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large Cython layer details
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Folder structure in dafoam/src/pyDASolvers}
+As mentioned above, to wrap the C++ libraries from the OpenFOAM layer, we define a C++ class called DASolvers (DASolvers.H and DASolvers.C), and its corresponding Cython class is called pyDASolvers (pyDASolver.pyx).
+\footnotesize
+\lstset{ language=bash }
+\begin{lstlisting}
+src/pyDASolvers
+  Allclean                DASolvers.H             setup_Incompressible.py
+  Allmake                 pyDASolvers.pyx         setup_Solid.py
+  DASolvers.C             setup_Compressible.py
+\end{lstlisting}
+\normalsize
+
+A few notes:
+
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item DASolver (OpenFOAM layer) and DASolvers (Cython layer) are two different C++ classes.
+ \item We do not directly wrap the DASolver class with Cython, instead, we create the DASolvers class to call the DASolver class. This treatment allows DASolver to become a pure C++ library that can easily use the runtime selction mechanism (e.g., child class for turbulence models) in OpenFOAM.
+ \item The DASolvers and pyDASolvers are pure wrapper classes so they do not handle child classes or virtual functions
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{DASolvers class}
+ As mentioned above, what DASolvers class does is to call the DASolver's methods implemented in the OpenFOAM layer. So DASolvers.H will receive the DASolver object and call DASolver's methods
+\footnotesize
+\lstset{ language=c++ }
+\begin{lstlisting}
+class DASolvers
+{
+  // DASolverPtr_ is initialized in DASolvers.C
+  // initialize fields and variables
+  void initSolver()
+  {
+      // call DASolverPtr's initSolver method
+      DASolverPtr_->initSolver();
+  }
+  // solve the primal equations
+  label solvePrimal(
+      const Vec xvVec,
+      Vec wVec)
+  {
+      // call DASolverPtr's solvePrimal method
+      return DASolverPtr_->solvePrimal(xvVec, wVec);
+  }
+}
+\end{lstlisting}
+\normalsize
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{pyDASolvers class}
+pyDASolvers is written in Cython format. We need to wrap all the DASolvers' member and expose them to the Python layer. To to so, we need to first define them in \texttt{cppclass DASolvers:}. Then, we need to define them in \texttt{cdef class pyDASolvers:}. 
+
+See the following for how initSolver and solverPrimal are wrapped.
+
+\footnotesize
+\lstset{ language=python }
+\begin{lstlisting}
+# declare cpp functions
+cdef extern from "DASolvers.H" namespace "Foam":
+    cppclass DASolvers:
+        DASolvers(char *, object) except +
+        void initSolver()
+        int solvePrimal(PetscVec, PetscVec)
+
+# create python wrappers that call cpp functions
+cdef class pyDASolvers:
+    # wrap all the other member functions in the cpp class
+    def initSolver(self):
+        self._thisptr.initSolver()
+
+    def solvePrimal(self, Vec xvVec, Vec wVec):
+        return self._thisptr.solvePrimal(xvVec.vec, wVec.vec)
+\end{lstlisting}
+\normalsize
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{A few notes about the Cython layer}
+
+
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item We can not directly pass a Python array to the OpenFOAM layer. We have to pass them as Petsc Vector or Matrix.
+ \item When passing a char type variable to the OpenFOAM layer, we need to need to use var\_name.encode() in the Python layer.
+ \item The Python layer can call OpenFOAM layer's member; however, the OpenFOAM layer can not call Python layer's members.
+\end{itemize}
+  
 \end{frame}
 %---------------------------------------------------------------%
 
