@@ -1428,6 +1428,44 @@ class DAFoamFunctions(ExplicitComponent):
 %---------------------------------------------------------------%
 
 
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large Developing new features for DAFoam
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{General steps to add a new feature and test it}
+
+To faciliate the compiling and testing the new feature, we created a lightweight version of DAFoam in examples/dafoam\_lite. We also have a simple primal-only case in examples/curve\_cube.
+
+To add a new feature and test it, follow these general steps:
+
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+  \item Go to workshops/2022\_Summer/examples, and start the Docker container
+  \item Add/modify the source codes in dafoam\_lite
+  \item Compile dafoam\_lite by running 
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+Allmake && pip install .
+  \end{lstlisting}
+  \normalsize
+  \item Add/modify curved\_cube/runScript.py
+  \item In curved\_cube, run:
+  \footnotesize
+  \lstset{ language=bash }
+  \begin{lstlisting}
+python runScript.py
+  \end{lstlisting}
+  \normalsize
+  \item From the screen output, check if the new feature is implemented correctly
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
 \begin{frame}{}
@@ -1438,9 +1476,38 @@ class DAFoamFunctions(ExplicitComponent):
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{Steps}
+If we want to add a new float parameter called newPar, we need to
 \begin{itemize}
   \setlength\itemsep{0.5em}
- \item abc
+ \item Add this parameter to the DAOPTION's \texttt{init()} function in pyDAFoam.py, e.g., line 68 in dafoam\_lite/dafoam/pyDAFoam.py
+ \footnotesize
+ \lstset{ language=c++ }
+ \begin{lstlisting}
+self.newPar = 0.0
+ \end{lstlisting}
+ \normalsize
+ \item Get the new parameter's value from the OpenFOAM layer. We can get it anywhere by using the daOption's getOption function, e.g., we can call this function from the solvePrimal function in src/adjoint/DASolver/DASimpleFoam/DASimpleFoam.C, e.g., add the following line to line 192 in DASimpleFoam.C
+ \footnotesize
+ \lstset{ language=c++ }
+ \begin{lstlisting}
+scalar newPar = daOptionPtr_->getOption<scalar>("newPar");
+Info << "newPar " << newPar << endl;
+ \end{lstlisting}
+ \normalsize
+ \item Add this new parameter to daOptions in runScript.py, e.g., line 24 in runScript.py
+ \footnotesize
+ \lstset{ language=c++ }
+ \begin{lstlisting}
+"newPar": 12.3
+ \end{lstlisting}
+ \normalsize
+ \item Finally, run it to see newPar's value printed to the screen
+ \footnotesize
+ \lstset{ language=c++ }
+ \begin{lstlisting}
+python runScript.py
+ \end{lstlisting}
+ \normalsize
 \end{itemize}
 \end{frame}
 %---------------------------------------------------------------%
