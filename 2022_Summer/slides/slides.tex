@@ -796,7 +796,7 @@ if args.task == "opt":
     \item Cython layer details
     \item Python layer details
     \item Add a new parameter
-    \item Add a new function and expose it to the Python layer
+    \item Add a new OpenFOAM layer function \& expose it to Python layer
     \item Add a new objective/constraint function
     \item Add a new model or boundary condition
     \item Add a new design variable
@@ -1475,7 +1475,7 @@ python runScript.py
 
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{Steps}
+\begin{frame}[fragile]{Steps to add a parameter}
 If we want to add a new float parameter called newPar, we need to
 \begin{itemize}
   \setlength\itemsep{0.5em}
@@ -1508,6 +1508,268 @@ Info << "newPar " << newPar << endl;
 python runScript.py
  \end{lstlisting}
  \normalsize
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{A few notes about adding a parameter}
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item Make sure to give an initial value for a new option, this help PYDAFOAM determine the type of this
+ option. If it is a list, give at least one default value. If it is a dict, you can leave it
+ blank, e.g., \{\}
+ \item The parameters will be passed from the Python layer to the OpenFOAM layer through the DAOption object. This is done ONCE when the DAOptoin object is constructed. Therefore, if one needs to update a parameter during the optimization, one needs to call \texttt{DASolver.updateDAOption()} to pass the updated Python layer parameters to the OpenFOAM layer again
+ \item The OpenFOAM layer won't be able to change the parameters from the Python layer
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \label{sec_add_new_func}
+  \center \Large Add a new OpenFOAM layer function and expose it to the Python layer
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Steps to add a function (1/2)}
+If we want to add a new function to compute the total mesh volume (\texttt{calcVol()}) in the OpenFOAM layer and expose it to the Python layer, we need to
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item Add this function to the DASolver calss in the OpenFOAM layer, e.g., add this to line 241 in dafoam\_lite/src/adjoint/DASolver/DASolver.H
+ \footnotesize
+ \lstset{ language=c++ }
+ \begin{lstlisting}
+void calcVol(){
+  scalar vol = 0.0;
+  forAll(meshPtr_->V(), cellI){
+    vol += meshPtr_->V()[cellI];
+  }
+  Info << "Mesh total volume: " << vol <<endl;
+}
+ \end{lstlisting}
+ \normalsize
+ \item Next, we add it to the Cython layer. First add this same function to the DASolvers class in the Cython layer, e.g., add this to line 70 in dafoam\_lite/src/pyDASolvers/DASolvers.H
+ \footnotesize
+ \lstset{ language=c++ }
+ \begin{lstlisting}
+void calcVol(){
+  DASolverPtr_->calcVol();
+}
+ \end{lstlisting}
+ \normalsize
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Steps to add a function (2/2)}
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item In addition to DASolvers, we need to add this function to the pyDASolvers class, e.g., we need to add this to line 95 in dafoam\_lite/src/pyDASolvers/pyDASolvers.pyx
+ \footnotesize
+ \lstset{ language=c++ }
+ \begin{lstlisting}
+void calcVol()
+ \end{lstlisting}
+ \normalsize
+ \item In addition, we need to add this to line 350 in dafoam\_lite/src/pyDASolvers/pyDASolvers.pyx. The Cython layer is done and this function is calable in the Python layer
+ \footnotesize
+ \lstset{ language=c++ }
+ \begin{lstlisting}
+def calcVol(self):
+    self._thisptr.calcVol()
+ \end{lstlisting}
+ \normalsize
+ \item To verify the the new function, we can add this line to line 32 in examples/curved\_cube/runScript.py
+ \footnotesize
+ \lstset{ language=c++ }
+ \begin{lstlisting}
+DASolver.solver.calcVol()
+ \end{lstlisting}
+ \normalsize
+ \item Run the case, you will see the total volume printed to the screen
+ \footnotesize
+ \lstset{ language=bash}
+ \begin{lstlisting}
+python runScript.py
+ \end{lstlisting}
+ \normalsize
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{A few notes about adding a function}
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item We can add a new function to any classes in the OpenFOAM layer. But eventually, we need to write a access function in the DASolver class because only functions in this class is accessable from the Cython layer's DASolvers class.
+ \item Note that when calling this OpenFOAM layer function from the Python layer, we use \texttt{DASolver.solver.calcVol()}. Here the \texttt{solver} is a member in the PYDAFOAM class for the original version of OpenFOAM. PYDAFOAM also has another variable call \texttt{solverAD} which contains the variables for the AD version of OpenFOAM. As mentioned above, \texttt{solver} and \texttt{solverAD} objects contain independent variables that allow us to run the primal using the original OpenFOAM and run adjoint using the AD version of OpenFOAM. 
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large Add a new objective/constraint function
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Steps to add a objective/constraint function (1/3)}
+If we want to add a new objective function \texttt{MyObj} that computes the volume weighted pressure over the entire field, we need to
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item First, we copy DAObjFuncForce.C and DAObjFuncForce.H in src/adjoint/DAObjFuncas and rename them as DAObjFuncMyObj.H and DAObjFuncMyObj.C
+ \item Next, replace all "DAObjFuncForce" with "DAObjFuncMyObj" for both DAObjFuncMyObj.H and DAObjFuncMyObj.C
+ \item In DAObjFuncMyObj.H, use \texttt{TypeName("myObj");}. Note that this TypeName defines the objFunc "type" in runScript.py. So if you get the "Unknown DAObjFunc type xxxx" error, double check if the TypeName is set for your new objective function.
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Steps to add a objective/constraint function (2/3)}
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item Then, we need to implement the volume weighted pressure computation in the calcObjFunc function in DAObjFuncMyObj.C. This function calculates objFuncVal.
+ \footnotesize
+ \lstset{ language=c++ }
+ \begin{lstlisting}
+// initialize the objective function value
+objFuncValue = 0.0;
+// get the pressure variable from the mesh database (memory)
+const objectRegistry& db = mesh_.thisDb();
+const volScalarField& p = db.lookupObject<volScalarField>("p");
+// calculate the volume weighted pressure
+forAll(p, cellI){
+  objFuncValue += p[cellI] * mesh_.V()[cellI];
+}
+// need to reduce the sum of force across all processors
+reduce(objFuncValue, sumOp<scalar>());
+ \end{lstlisting}
+ \normalsize
+ \item Add \texttt{DAObjFunc/DAObjFuncMyObj.C} file to line 29 in src/adjoint/Make/files\_Incompressible
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Steps to add a objective/constraint function (3/3)}
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item Add this new objective function to the objFunc key in daOptions from runScript.py
+ \footnotesize
+ \lstset{ language=python }
+ \begin{lstlisting}
+"F1": {
+    "part1": {
+        "type": "myObj",
+        "source": "patchToFace",
+        "patches": ["walls"],
+        "addToAdjoint": True,
+    }
+},
+ \end{lstlisting}
+ \normalsize
+ \item Run the case with \texttt{python runScript.py}, you should see the objective function printed to the screen when solving the primal.
+ \item NOTE: Examples of DAObjFuncMyObj.H and DAObjFuncMyObj.C are in 2022\_Summer/examples/codes
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large Add a new model or boundary condition
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Steps to add a new model or boundary condition}
+If we want to add a new model or boundary condition, we need to
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item Put the source codes in to src/adjoint/models
+ \item Include its .C file in src/adjoint/Make/files\_Incompressible
+ \item Re-compile DAFoam and this new model/boundary condition is ready to use in the OpenFOAM layer
+ \item Refer to the existing models for templates
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large Add a new design variable
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Steps to add a new design variable (1/2)}
+If we want to add a new design variable called \texttt{NewDV}, we need to
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item Implement calcdRdNewDVTPsi and calcdFdNewDVAD functions in the DASolver class (src/adjoint/DASolver/DASolver.C) to compute the matrix-vector product and partial derivatives for this new design variables. Rerfer to the functions for other design variables for templates
+ \item Follow the steps in Slide~\ref{sec_add_new_func} and expose this function to the Python layer
+ \item Add this new design variable as the input to the DAFoamSolver class in mphys\_dafoam.py, e.g., follow other design variables in line 240 of mphys\_dafoam.py
+ \item Call calcdRdNewDVTPsi in DAFoamSolver class in mphys\_dafoam.py, e.g., follow other design variables in line 442 of mphys\_dafoam.py
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Steps to add a new design variable (2/2)}
+\begin{itemize}
+    \setlength\itemsep{0.5em}
+   \item Add this new design variable as the input to the DAFoamFunctions class in mphys\_dafoam.py, e.g., follow other design variables in line 659 of mphys\_dafoam.py
+   \item Call calcdFdNewDVAD in DAFoamFunctions class in mphys\_dafoam.py, e.g., follow other design variables in line 787 of mphys\_dafoam.py
+   \item Set this new design variables in runScript.py, following other design variables. 
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+  \center \Large Add a new solver
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Steps to add a new solver (1/3)}
+If we want to add a new solver called \texttt{DASimpleFoamNew}, we need to
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item Copy the DASimpleFoam folder and rename it to DASimpleFoamNew, put the DASimpleFoamNew folder to src/adjoint/DASolver
+ \item Rename DASimpleFoam.C to DASimpleFoamNew.C, rename UEqnSimple.H to UEqnSimpleNew.H. Do the same renaming for all the files in the DASimpleFoamNew folder.
+ \item Replace \texttt{DASimpleFoam} with \texttt{DASimpleFoamNew} in DASimpleFoamNew.H and DASimpleFoamNew.C. Remember to change \texttt{TypeName("DASimpleFoam")} to \texttt{TypeName("DASimpleFoamNew")} in DASimpleFoamNew.H.
+ \item Replace \texttt{\#include "createFieldsSimple.H"} with \texttt{\#include "createFieldsSimpleNew.H"} in DASimpleFoamNew.C. Do the same renaming for other include files.
+ \item Do some changes to the DASimpleFoamNew.C file to implement your new features
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Steps to add a new solver (2/3)}
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item Copy DAStateInfoSimpleFoam.C and DAStateInfoSimpleFoam.H and rename them to DAStateInfoSimpleFoamNew.C and DAStateInfoSimpleFoamNew.H in src/adjoint/DAStateInfo
+ \item Replace \texttt{DAStateInfoSimpleFoam} with \texttt{DAStateInfoSimpleFoamNew} in DAStateInfoSimpleFoam.C and DAStateInfoSimpleFoam.H. Remember to change \texttt{TypeName("DASimpleFoam")} to \texttt{TypeName("DASimpleFoamNew")} in DAStateInfoSimpleFoam.H.
+ \item If the new solver has different state variables and connectivity, change it according in DAStateInfoSimpleFoam.C. Otherwise, keep DAStateInfoSimpleFoam.C unchanged.
+ \item Copy DAResidualSimpleFoam.C and DAResidualSimpleFoam.H and rename them to DAResidualSimpleFoamNew.C and DAResidualSimpleFoamNew.H in src/adjoint/DAResidual
+ 
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Steps to add a new solver (3/3)}
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+  \item Replace \texttt{DAResidualSimpleFoam} with \texttt{DAResidualSimpleFoamNew} in DAResidualSimpleFoam.C and DAResidualSimpleFoam.H. Remember to change \texttt{TypeName("DASimpleFoam")} to \texttt{TypeName("DASimpleFoamNew")} in DAResidualSimpleFoam.H.
+ \item If you change the primal implementation in DASimpleFoamNew.C, make sure you do the same change for DAResidualSimpleFoamNew.C to make sure the residual is consistent with the primal.
+ \item Add \texttt{DASolver/DASimpleFoamNew/DASimpleFoamNew.C}, \texttt{DAStateInfo/DAStateInfoSimpleFoam.C}, and \texttt{DAResidual/DAResidualSimpleFoam.C} to src/adjoint/Make/files\_Incompressible. Recompile DAFoam.
+ \item Append the new solver's name to line 801 of pyDAFoam.py
+ \item Set the solverName to \texttt{DASimpleFoamNew} in runScript.py to run the case with the new solver
 \end{itemize}
 \end{frame}
 %---------------------------------------------------------------%
