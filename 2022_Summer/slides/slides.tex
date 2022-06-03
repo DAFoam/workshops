@@ -1649,7 +1649,7 @@ forAll(p, cellI){
 reduce(objFuncValue, sumOp<scalar>());
  \end{lstlisting}
  \normalsize
- \item Add \texttt{DAObjFunc/DAObjFuncMyObj.C} file to line 29 in src/adjoint/Make/files\_Incompressible
+ \item Add \texttt{DAObjFunc/DAObjFuncMyObj.C} file to line 29 in src/adjoint/Make/files\_Incompressible. \textbf{Recompile DAFoam.}
 \end{itemize}
 \end{frame}
 %---------------------------------------------------------------%
@@ -1691,7 +1691,7 @@ If we want to add a new model or boundary condition, we need to
   \setlength\itemsep{0.5em}
  \item Put the source codes in to src/adjoint/models
  \item Include its .C file in src/adjoint/Make/files\_Incompressible
- \item Re-compile DAFoam and this new model/boundary condition is ready to use in the OpenFOAM layer
+ \item \textbf{Recompile DAFoam} and this new model/boundary condition is ready to use in the OpenFOAM layer
  \item Refer to the existing models for templates
 \end{itemize}
 \end{frame}
@@ -1709,7 +1709,7 @@ If we want to add a new design variable called \texttt{NewDV}, we need to
 \begin{itemize}
   \setlength\itemsep{0.5em}
  \item Implement calcdRdNewDVTPsi and calcdFdNewDVAD functions in the DASolver class (src/adjoint/DASolver/DASolver.C) to compute the matrix-vector product and partial derivatives for this new design variables. Rerfer to the functions for other design variables for templates
- \item Follow the steps in Slide~\ref{sec_add_new_func} and expose this function to the Python layer
+ \item Follow the steps in Slide~\ref{sec_add_new_func} and expose this function to the Python layer. \textbf{Recompile DAFoam.}
  \item Add this new design variable as the input to the DAFoamSolver class in mphys\_dafoam.py, e.g., follow other design variables in line 240 of mphys\_dafoam.py
  \item Call calcdRdNewDVTPsi in DAFoamSolver class in mphys\_dafoam.py, e.g., follow other design variables in line 442 of mphys\_dafoam.py
 \end{itemize}
@@ -1767,7 +1767,7 @@ If we want to add a new solver called \texttt{DASimpleFoamNew}, we need to
   \setlength\itemsep{0.5em}
   \item Replace \texttt{DAResidualSimpleFoam} with \texttt{DAResidualSimpleFoamNew} in DAResidualSimpleFoam.C and DAResidualSimpleFoam.H. Remember to change \texttt{TypeName("DASimpleFoam")} to \texttt{TypeName("DASimpleFoamNew")} in DAResidualSimpleFoam.H.
  \item If you change the primal implementation in DASimpleFoamNew.C, make sure you do the same change for DAResidualSimpleFoamNew.C to make sure the residual is consistent with the primal.
- \item Add \texttt{DASolver/DASimpleFoamNew/DASimpleFoamNew.C}, \texttt{DAStateInfo/DAStateInfoSimpleFoam.C}, and \texttt{DAResidual/DAResidualSimpleFoam.C} to src/adjoint/Make/files\_Incompressible. Recompile DAFoam.
+ \item Add \texttt{DASolver/DASimpleFoamNew/DASimpleFoamNew.C}, \texttt{DAStateInfo/DAStateInfoSimpleFoam.C}, and \texttt{DAResidual/DAResidualSimpleFoam.C} to src/adjoint/Make/files\_Incompressible. \textbf{Recompile DAFoam.}
  \item Append the new solver's name to line 801 of pyDAFoam.py
  \item Set the solverName to \texttt{DASimpleFoamNew} in runScript.py to run the case with the new solver
 \end{itemize}
