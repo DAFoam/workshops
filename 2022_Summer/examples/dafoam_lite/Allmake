@@ -10,4 +10,3 @@ fi
 
 cd src/adjoint && ./Allmake incompressible && cd -
 cd src/pyDASolvers && ./Allmake incompressible && cd -
-cd src/utilities/coloring && ./Allmake incompressible && cd -

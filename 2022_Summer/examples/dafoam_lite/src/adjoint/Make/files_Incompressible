@@ -13,7 +13,6 @@ DAModel/DATurbulenceModel/DATurbulenceModel.C
 DAModel/DATurbulenceModel/DASpalartAllmaras.C
 
 DAModel/DARadiationModel/DARadiationModel.C
-DAModel/DARadiationModel/DAP1.C
 
 DAModel/DAModel.C
 
@@ -28,7 +27,6 @@ DAObjFunc/DAObjFunc.C
 DAObjFunc/DAObjFuncForce.C
 
 DAFvSource/DAFvSource.C
-DAFvSource/DAFvSourceActuatorDisk.C
 
 DAResidual/DAResidual.C
 DAResidual/DAResidualDummy.C
@@ -37,13 +35,8 @@ DAResidual/DAResidualSimpleFoam.C
 DAColoring/DAColoring.C
 
 DAJacCon/DAJacCon.C
-DAJacCon/DAJacCondRdW.C
-DAJacCon/DAJacCondFdW.C
-DAJacCon/DAJacConDummy.C
 
 DAPartDeriv/DAPartDeriv.C
-DAPartDeriv/DAPartDerivdRdW.C
-DAPartDeriv/DAPartDerivdFdW.C
 
 DALinearEqn/DALinearEqn.C
 

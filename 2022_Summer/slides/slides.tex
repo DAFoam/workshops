@@ -1486,7 +1486,7 @@ If we want to add a new float parameter called newPar, we need to
 self.newPar = 0.0
  \end{lstlisting}
  \normalsize
- \item Get the new parameter's value from the OpenFOAM layer. We can get it anywhere by using the daOption's getOption function, e.g., we can call this function from the solvePrimal function in src/adjoint/DASolver/DASimpleFoam/DASimpleFoam.C, e.g., add the following line to line 192 in DASimpleFoam.C
+ \item Get the new parameter's value from the OpenFOAM layer. For instance, we can call this function from the solvePrimal function in src/adjoint/DASolver/DASimpleFoam/DASimpleFoam.C, e.g., add the following line to line 192 in DASimpleFoam.C. \textbf{Then, recompile DAFoam.}
  \footnotesize
  \lstset{ language=c++ }
  \begin{lstlisting}
@@ -1582,7 +1582,7 @@ def calcVol(self):
     self._thisptr.calcVol()
  \end{lstlisting}
  \normalsize
- \item To verify the the new function, we can add this line to line 32 in examples/curved\_cube/runScript.py
+ \item To verify the the new function, we can add this line to line 32 in examples/curved\_cube/runScript.py. \textbf{Recompile DAFoam.}
  \footnotesize
  \lstset{ language=c++ }
  \begin{lstlisting}
