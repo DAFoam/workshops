@@ -496,7 +496,7 @@ Allclean.sh  constant  paraview.foam      profiles          system
   \footnotesize
   \lstset{ language=bash }
   \begin{lstlisting}
-mpirun -np 2 python runScript.py | tee 2>&1 logOpt.txt
+mpirun -np 2 python runScript.py 2>&1 | tee logOpt.txt
   \end{lstlisting}
   \normalsize
 
