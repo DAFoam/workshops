@@ -3,6 +3,7 @@
 \usepackage{amsmath,amsfonts,amsthm}
 \usepackage{hyperref}
 \usepackage{setspace}
+\usepackage{makecell}
 %\usepackage{media9} % for movies
 %\usepackage{multimedia} % for movies
 \usepackage{caption} % for figure caption
@@ -781,20 +782,35 @@ if args.task == "opt":
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
+\begin{frame}[fragile]{Aerostructural Optimization Tutorial}
+  \begin{itemize}
+    \setlength\itemsep{1em}
+    \item What is aerostructural analysis and optimization?
+    \item How are the disciplines and solvers coupled?
+    \item How do we setup the aerodynamic and structural problems?
+    \item What does the runscript look like?
+    \item What does this problem look like represented in OpenMDAO?
+    \item What do aerostructural analysis and optimization results look like?
+  \end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
 \begin{frame}{What is aerostructural analysis?}
 \begin{figure}
 \includegraphics[width=1.05\linewidth]{images/aerostruct-resultDeformed.png} 
-\caption{There are three code layers in DAFoam: OpenFOAM, Cython, and Python. Each layer takes source code or libraries as the input in the vertical direction and output libraries to the horizontal direction.}
+\caption{Results of a converged aerostructural analysis, with the undeformed shape shown in translucent gray while the updatd, converged wing is shown in as the resulting mesh with contours of coefficient of pressure.}
 \end{figure}
 \end{frame}
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}{eXtended Design Structure Matrix}
-\begin{figure}
-\includegraphics[width=1.0\linewidth]{images/aerostruct-xdsm.pdf} 
-\caption{There are three code layers in DAFoam: OpenFOAM, Cython, and Python. Each layer takes source code or libraries as the input in the vertical direction and output libraries to the horizontal direction.}
-\end{figure}
+\begin{frame}{Discipline and Solver Coupling}
+  eXtended Design Structure Matrix:
+  \begin{figure}
+    \includegraphics[width=1.0\linewidth]{images/aerostruct-xdsm.pdf} 
+    \caption{Diagram for coupled aerostructural analysis and optimization. The diagonal elements specify computational blocks where green signifies analysis, yellow signifies solvers, and blue signifies the optimizer.}
+  \end{figure}
 \end{frame}
 %---------------------------------------------------------------%
 
@@ -814,20 +830,42 @@ if args.task == "opt":
       \includegraphics[width=1.0\linewidth]{images/aerostruct-structSetup.png}
     \end{column}
   \end{columns}
+  \begin{itemize}
+    \item \small The aerodyamic mesh and FFD are no different than a typical aerodynamic optimization case setup.
+    \item \small The structural mesh consists of a finite element wingbox structure, with shell elements representing the ribs, spars, stringers, and skins.
+    \item \small The aerodynamic and structural meshes should be constructed to correspond in the global coordinate frame of the optimization.
+  \end{itemize}
 \end{frame}
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}{eXtended Design Structure Matrix}
-  \begin{figure}
-  \includegraphics[width=1.0\linewidth]{images/aerostruct-n2.png}
-  \caption{There are three code layers in DAFoam: OpenFOAM, Cython, and Python. Each layer takes source code or libraries as the input in the vertical direction and output libraries to the horizontal direction.}
-  \end{figure}
+\begin{frame}{Summary of the aerostructural optimization case}
+
+  \begin{table}
+    \renewcommand{\arraystretch}{1.5}
+    \small
+    \centering
+    \label{tab:implemented_models}
+    \begin{tabular}{llllllllllll}
+    \hline
+    Optimizer   & SLSQP \\
+    Flow and adjoint solvers  & DARhoSimpleFoam  \\
+    Geometry  & MACH Tutorial Wing \\
+    Objective function  & $C_D$ \\
+    Design variables &7 twist, 96 FFDs, and $\alpha$ \\
+    Constraint & \makecell[l]{$C_L=0.3$, Von Mises stress failure, thickness,\\volume, TE/LE}\\
+    $U_\infty$  & 100 m/s \\
+    Turbulence Model  & Spalart--Allmaras\\
+     \hline
+    \end{tabular}
+  \end{table}
+
+  You can find the case settings in workshops/2022\_Summer/examples/aerostructural.
 \end{frame}
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py details (1/10)}
+\begin{frame}[fragile]{runScript.py Details (1/21) - \large Package Imports}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -856,7 +894,7 @@ args = parser.parse_args()
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (2/21) - \large DAFoam Solver Settings}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -870,49 +908,49 @@ rho0 = p0 / T0 / 287.0
 A0 = 45.5
 
 daOptions = {
-    "designSurfaces": ["wing"],
-    "solverName": "DARhoSimpleFoam",
-    "primalMinResTol": 1.0e-8,
-    "fsi": {"pRef": p0},  # set the ref pressure for computing force for FSI
-    "primalBC": {
-        "U0": {"variable": "U", "patches": ["inout"], "value": [U0, 0.0, 0.0]},
-        "p0": {"variable": "p", "patches": ["inout"], "value": [p0]},
-        "T0": {"variable": "T", "patches": ["inout"], "value": [T0]},
-        "nuTilda0": {"variable": "nuTilda", "patches": ["inout"], "value": [nuTilda0]},
-        "useWallFunction": True,
-    },
+  "designSurfaces": ["wing"],
+  "solverName": "DARhoSimpleFoam",
+  "primalMinResTol": 1.0e-8,
+  "fsi": {"pRef": p0},  # set the ref pressure for computing force for FSI
+  "primalBC": {
+    "U0": {"variable": "U", "patches": ["inout"], "value": [U0, 0.0, 0.0]},
+    "p0": {"variable": "p", "patches": ["inout"], "value": [p0]},
+    "T0": {"variable": "T", "patches": ["inout"], "value": [T0]},
+    "nuTilda0": {"variable": "nuTilda", "patches": ["inout"], "value": [nuTilda0]},
+    "useWallFunction": True,
+  },
 \end{lstlisting}
 \normalsize
 \end{frame}
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (3/21) - \large DAFoam Objective Functions}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 "objFunc": {
   "CD": {
-      "part1": {
-          "type": "force",
-          "source": "patchToFace",
-          "patches": ["wing"],
-          "directionMode": "parallelToFlow",
-          "alphaName": "aoa",
-          "scale": 1.0 / (0.5 * U0 * U0 * A0 * rho0),
-          "addToAdjoint": True,
-      }
+    "part1": {
+      "type": "force",
+      "source": "patchToFace",
+      "patches": ["wing"],
+      "directionMode": "parallelToFlow",
+      "alphaName": "aoa",
+      "scale": 1.0 / (0.5 * U0 * U0 * A0 * rho0),
+      "addToAdjoint": True,
+    }
   },
   "CL": {
-      "part1": {
-          "type": "force",
-          "source": "patchToFace",
-          "patches": ["wing"],
-          "directionMode": "normalToFlow",
-          "alphaName": "aoa",
-          "scale": 1.0 / (0.5 * U0 * U0 * A0 * rho0),
-          "addToAdjoint": True,
-      }
+    "part1": {
+      "type": "force",
+      "source": "patchToFace",
+      "patches": ["wing"],
+      "directionMode": "normalToFlow",
+      "alphaName": "aoa",
+      "scale": 1.0 / (0.5 * U0 * U0 * A0 * rho0),
+      "addToAdjoint": True,
+    }
   },
 },
 \end{lstlisting}
@@ -921,7 +959,7 @@ daOptions = {
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (4/21) - \large DAFoam Adjoint Settings}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -944,14 +982,14 @@ daOptions = {
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (5/21) - \large DAFoam CheckMesh Settings}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 "checkMeshThreshold": {
-    "maxAspectRatio": 1000.0,
-    "maxNonOrth": 70.0,
-    "maxSkewness": 5.0,
+  "maxAspectRatio": 1000.0,
+  "maxNonOrth": 70.0,
+  "maxSkewness": 5.0,
 },
 \end{lstlisting}
 \normalsize
@@ -959,14 +997,14 @@ daOptions = {
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (6/21) - \large DAFoam Design Variables}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 "designVar": {
-    "aoa": {"designVarType": "AOA", "patches": ["inout"], "flowAxis": "x", "normalAxis": "y"},
-    "twist": {"designVarType": "FFD"},
-    "shape": {"designVarType": "FFD"},
+  "aoa": {"designVarType": "AOA", "patches": ["inout"], "flowAxis": "x", "normalAxis": "y"},
+  "twist": {"designVarType": "FFD"},
+  "shape": {"designVarType": "FFD"},
 },
 \end{lstlisting}
 \normalsize
@@ -974,19 +1012,20 @@ daOptions = {
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (7/21) - \large Mesh Settings}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 # Mesh deformation setup
 meshOptions = {
-    "gridFile": os.getcwd(),
-    "fileType": "OpenFOAM",
-    # point and normal for the symmetry plane
-    "symmetryPlanes": [[[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]]],
+  "gridFile": os.getcwd(),
+  "fileType": "OpenFOAM",
+  # point and normal for the symmetry plane
+  "symmetryPlanes": [[[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]]],
 }
 
 # TACS Setup
+import tacsSetup
 tacsOptions = {
     "element_callback": tacsSetup.element_callback,
     "problem_setup": tacsSetup.problem_setup,
@@ -998,8 +1037,8 @@ tacsOptions = {
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
-\scriptsize
+\begin{frame}[fragile]{runScript.py Details (8/21) - \large TACS Setup}
+ \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 import numpy as np
@@ -1022,7 +1061,7 @@ tMax = 0.05  # m
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (9/21) - \large TACS Element Function}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1044,7 +1083,7 @@ def element_callback(dvNum, compID, compDescript, elemDescripts, specialDVs, **k
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (10/21) - \large TACS Problem Setup}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1067,36 +1106,36 @@ def problem_setup(scenario_name, fea_assembler, problem):
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (11/21) - \large Solver Setup}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 class Top(Multipoint):
   def setup(self):
-      # create the builder to initialize the DASolvers
-      aero_builder = DAFoamBuilder(daOptions, meshOptions, scenario="aerostructural")
-      aero_builder.initialize(self.comm)
+    # create the builder to initialize the DASolvers
+    aero_builder = DAFoamBuilder(daOptions, meshOptions, scenario="aerostructural")
+    aero_builder.initialize(self.comm)
 
-      # add the aerodynamic mesh component
-      self.add_subsystem("mesh_aero", aero_builder.get_mesh_coordinate_subsystem())
+    # add the aerodynamic mesh component
+    self.add_subsystem("mesh_aero", aero_builder.get_mesh_coordinate_subsystem())
 
-      # create the builder to initialize TACS
-      struct_builder = TacsBuilder(tacsOptions)
-      struct_builder.initialize(self.comm)
+    # create the builder to initialize TACS
+    struct_builder = TacsBuilder(tacsOptions)
+    struct_builder.initialize(self.comm)
 
-      # add the structure mesh component
-      self.add_subsystem("mesh_struct", struct_builder.get_mesh_coordinate_subsystem())
+    # add the structure mesh component
+    self.add_subsystem("mesh_struct", struct_builder.get_mesh_coordinate_subsystem())
 
-      # load and displacement transfer builder (meld), isym sets the symmetry plan axis (k)
-      xfer_builder = MeldBuilder(aero_builder, struct_builder, isym=2, check_partials=True)
-      xfer_builder.initialize(self.comm)
+    # load and displacement transfer builder (meld), isym sets the symmetry plan axis (k)
+    xfer_builder = MeldBuilder(aero_builder, struct_builder, isym=2, check_partials=True)
+    xfer_builder.initialize(self.comm)
 \end{lstlisting}
 \normalsize
 \end{frame}
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (12/21) - \large Scenario Setup}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1112,12 +1151,12 @@ nonlinear_solver = om.NonlinearBlockGS(maxiter=25, iprint=2, use_aitken=True, rt
 linear_solver = om.LinearBlockGS(maxiter=25, iprint=2, use_aitken=True, rtol=1e-6, atol=1e-6)
 # add the coupling aerostructural scenario
 self.mphys_add_scenario(
-    "cruise",
-    ScenarioAeroStructural(
-        aero_builder=aero_builder, struct_builder=struct_builder, ldxfer_builder=xfer_builder
-    ),
-    nonlinear_solver,
-    linear_solver,
+  "cruise",
+  ScenarioAeroStructural(
+    aero_builder=aero_builder, struct_builder=struct_builder, ldxfer_builder=xfer_builder
+  ),
+  nonlinear_solver,
+  linear_solver,
 )
 \end{lstlisting}
 \normalsize
@@ -1125,13 +1164,13 @@ self.mphys_add_scenario(
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (13/21) - \large Aerostructural Connections}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 # need to manually connect the vars in the geo component to cruise
 for discipline in ["aero", "struct"]:
-    self.connect("geometry.x_%s0" % discipline, "cruise.x_%s0" % discipline)
+  self.connect("geometry.x_%s0" % discipline, "cruise.x_%s0" % discipline)
 
 # add the structural thickness DVs
 ndv_struct = struct_builder.get_ndv()
@@ -1147,35 +1186,35 @@ self.connect("mesh_struct.x_struct0", "geometry.x_struct_in")
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (14/21) - \large Problem Configuration}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 def configure(self):
-    # call this to configure the coupling solver
-    super().configure()
+  # call this to configure the coupling solver
+  super().configure()
 
-    # add the objective function to the cruise scenario
-    self.cruise.aero_post.mphys_add_funcs()
+  # add the objective function to the cruise scenario
+  self.cruise.aero_post.mphys_add_funcs()
 
-    # get the surface coordinates from the mesh component
-    points = self.mesh_aero.mphys_get_surface_mesh()
+  # get the surface coordinates from the mesh component
+  points = self.mesh_aero.mphys_get_surface_mesh()
 
-    # add pointset for both aero and struct
-    self.geometry.nom_add_discipline_coords("aero", points)
-    self.geometry.nom_add_discipline_coords("struct")
+  # add pointset for both aero and struct
+  self.geometry.nom_add_discipline_coords("aero", points)
+  self.geometry.nom_add_discipline_coords("struct")
 
-    # set the triangular points to the geometry component for geometric constraints
-    tri_points = self.mesh_aero.mphys_get_triangulated_surface()
-    self.geometry.nom_setConstraintSurface(tri_points)
+  # set the triangular points to the geometry component for geometric constraints
+  tri_points = self.mesh_aero.mphys_get_triangulated_surface()
+  self.geometry.nom_setConstraintSurface(tri_points)
 \end{lstlisting}
 \normalsize
 \end{frame}
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
-\scriptsize
+\begin{frame}[fragile]{runScript.py Details (15/21) - \large FFD Variable Definitions}
+  \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 # Create reference axis for the twist variable
@@ -1183,8 +1222,8 @@ nRefAxPts = self.geometry.nom_addRefAxis(name="wingAxis", xFraction=0.25, alignI
 
 # Set up global design variables. We dont change the root twist
 def twist(val, geo):
-    for i in range(1, nRefAxPts):
-        geo.rot_z["wingAxis"].coef[i] = -val[i - 1]
+  for i in range(1, nRefAxPts):
+    geo.rot_z["wingAxis"].coef[i] = -val[i - 1]
 
 # add twist variable
 self.geometry.nom_addGeoDVGlobal(dvName="twist", value=np.array([0] * (nRefAxPts - 1)), func=twist)
@@ -1200,17 +1239,17 @@ nShapes = self.geometry.nom_addGeoDVLocal(dvName="shape", pointSelect=PS)
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (16/21) - \large Angle of Attack Definition}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 # define an angle of attack function to change the U direction at the far field
 def aoa(val, DASolver):
-    aoa = val[0] * np.pi / 180.0
-    U = [float(U0 * np.cos(aoa)), float(U0 * np.sin(aoa)), 0]
-    # we need to update the U value only
-    DASolver.setOption("primalBC", {"U0": {"value": U}})
-    DASolver.updateDAOption()
+  aoa = val[0] * np.pi / 180.0
+  U = [float(U0 * np.cos(aoa)), float(U0 * np.sin(aoa)), 0]
+  # we need to update the U value only
+  DASolver.setOption("primalBC", {"U0": {"value": U}})
+  DASolver.updateDAOption()
 
 # pass this aoa function to the cruise group
 self.cruise.coupling.aero.solver.add_dv_func("aoa", aoa)
@@ -1221,7 +1260,7 @@ self.cruise.aero_post.add_dv_func("aoa", aoa)
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (17/21) - \large Geometric Constraints}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1239,7 +1278,7 @@ self.geometry.nom_add_LETEConstraint("tecon", volID=0, faceID="iHigh")
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (18/21) - \large Design Variables}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1252,21 +1291,21 @@ self.dvs.add_output("aoa", val=np.array([aoa0]))
 self.connect("twist", "geometry.twist")
 self.connect("shape", "geometry.shape")
 self.connect("aoa", "cruise.aoa")
+
+# define the design variables
+self.add_design_var("twist", lower=-10.0, upper=10.0, scaler=1.0)
+self.add_design_var("shape", lower=-1.0, upper=1.0, scaler=1.0)
+self.add_design_var("aoa", lower=0.0, upper=10.0, scaler=1.0)
 \end{lstlisting}
 \normalsize
 \end{frame}
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (19/21) - \large Objective and Constraints}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
-# define the design variables
-self.add_design_var("twist", lower=-10.0, upper=10.0, scaler=1.0)
-self.add_design_var("shape", lower=-1.0, upper=1.0, scaler=1.0)
-self.add_design_var("aoa", lower=0.0, upper=10.0, scaler=1.0)
-
 # add constraints and the objective
 self.add_objective("cruise.aero_post.CD", scaler=1.0)
 self.add_constraint("cruise.aero_post.CL", equals=0.3, scaler=1.0)
@@ -1281,7 +1320,7 @@ self.add_constraint("geometry.lecon", equals=0.0, scaler=1.0, linear=True)
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (20/21) - \large Optimization Settings}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1314,40 +1353,49 @@ prob.driver.hist_file = "OptView.hst"
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{runScript.py - Solver Options (1/10)}
+\begin{frame}[fragile]{runScript.py Details (21/21) - \large Task Runner}
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 if args.task == "opt":
-    # solve CL
-    optFuncs.findFeasibleDesign(["cruise.aero_post.CL"], ["aoa"], targets=[CL_target])
-    # run the optimization
-    prob.run_driver()
+  # solve CL
+  optFuncs.findFeasibleDesign(["cruise.aero_post.CL"], ["aoa"], targets=[CL_target])
+  # run the optimization
+  prob.run_driver()
 elif args.task == "runPrimal":
-    # just run the primal once
-    prob.run_model()
+  # just run the primal once
+  prob.run_model()
 elif args.task == "runAdjoint":
-    # just run the primal and adjoint once
-    prob.run_model()
-    totals = prob.compute_totals()
-    if MPI.COMM_WORLD.rank == 0:
-        print(totals)
+  # just run the primal and adjoint once
+  prob.run_model()
+  totals = prob.compute_totals()
+  if MPI.COMM_WORLD.rank == 0:
+      print(totals)
 elif args.task == "checkTotals":
-    # verify the total derivatives against the finite-difference
-    prob.run_model()
-    prob.check_totals(
-        of=["CD", "CL"], wrt=["shape", "aoa"], compact_print=True, step=1e-3, form="central", step_calc="abs"
-    )
+  # verify the total derivatives against the finite-difference
+  prob.run_model()
+  prob.check_totals(
+    of=["CD", "CL"], wrt=["shape", "aoa"], compact_print=True, step=1e-3, form="central", step_calc="abs"
+  )
 else:
-    print("task arg not found!")
-    exit(1)
+  print("task arg not found!")
+  exit(1)
 \end{lstlisting}
 \normalsize
 \end{frame}
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}{Problem Setup}
+\begin{frame}{OpenMDAO Representation - N2 Diagram}
+  \begin{figure}
+  \includegraphics[width=1.0\linewidth]{images/aerostruct-n2.png}
+  \caption{An N2 diagram showing aerostructural optimization. The diagram shows each component and how data is passed between them, as well as the associated solvers used for each part of the aerostructural analysis and optimization.}
+  \end{figure}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{Analysis and Optimization Results}
   \begin{columns}
     \begin{column}{0.3\textwidth}
       \begin{center}
@@ -1371,6 +1419,18 @@ else:
   \end{columns}
 \end{frame}
 %---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Summary}
+  \begin{itemize}
+    \setlength\itemsep{1em}
+    \item For aerostructural analysis or optimization, we couple DAFoam with TACS, a flexible finite element solver.
+    \item OpenMDAO manages the solver coupling and data passage, streamlining the configuration for the user.
+    \item The runscript is largely an OpenMDAO component, defining the optimizaion scenario(s) and problem options.
+  \end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
 
 % ************************************************************************************
 \section{Add new features to DAFoam}
