@@ -799,7 +799,7 @@ if args.task == "opt":
 \begin{frame}{What is aerostructural analysis?}
 \begin{figure}
 \includegraphics[width=1.05\linewidth]{images/aerostruct-resultDeformed.png} 
-\caption{Results of a converged aerostructural analysis, with the undeformed shape shown in translucent gray while the updatd, converged wing is shown in as the resulting mesh with contours of coefficient of pressure.}
+\caption{Results of a converged aerostructural analysis, with the undeformed shape shown in translucent gray while the updated, converged wing is shown as the resulting mesh with contours of coefficient of pressure.}
 \end{figure}
 \end{frame}
 %---------------------------------------------------------------%
@@ -866,6 +866,7 @@ if args.task == "opt":
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (1/21) - \large Package Imports}
+The required packages are similar to the ones needed for aerodynamic analysis, with the addition of the load and displacement transfer tool (MELD) and the finite element analysis code (TACS).
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -895,6 +896,7 @@ args = parser.parse_args()
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (2/21) - \large DAFoam Solver Settings}
+The DAFoam solver options remain unchanged, except for the addition of a pressure correction term.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -926,6 +928,7 @@ daOptions = {
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (3/21) - \large DAFoam Objective Functions}
+Define the aerodynamic functions of interest in the same way as for the aerodynamic optimization case.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -960,6 +963,7 @@ daOptions = {
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (4/21) - \large DAFoam Adjoint Settings}
+When setting the adjoint options, consider that the DAFoam adjoint will be solved repeatedly when solving for coupled derivatives. Use a loose relative tolerance that will slowly converge to a much tighter absolute tolerance with each coupled iteration.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -983,6 +987,7 @@ daOptions = {
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (5/21) - \large DAFoam CheckMesh Settings}
+Aerostructural analysis and optimization require significant mesh deformation, both when updating the design itself and when displacing the geometry under load. In some cases, relax the mesh check thresholds to give DAFoam more flexibility when deforming the design.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -998,6 +1003,7 @@ daOptions = {
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (6/21) - \large DAFoam Design Variables}
+When using MPHYS and OpenMDAO, all of the DAFoam design variables \textit{must} be defined in the design variable dictionary. Otherwise, they may not be properly included in the problem setup.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1013,6 +1019,11 @@ daOptions = {
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (7/21) - \large Mesh Settings}
+Finalize the DAFoam mesh setup as is done for the aerodynamic analysis case.
+
+\vspace{0.25cm}
+
+Import the TACS setup file and specify the finite element mesh to begin configuring the structural solver.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1038,7 +1049,13 @@ tacsOptions = {
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (8/21) - \large TACS Setup}
- \scriptsize
+\textcolor{red}{\textit{This file is separate from the runscript and is used to specify the TACS setup.}}
+
+\vspace{0.25cm}
+
+Import the TACS packages and define the material and element properties.
+
+\scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
 import numpy as np
@@ -1062,6 +1079,11 @@ tMax = 0.05  # m
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (9/21) - \large TACS Element Function}
+\textcolor{red}{\textit{This file is separate from the runscript and is used to specify the TACS setup.}}
+
+\vspace{0.25cm}
+
+Define the element callback function, used in TACS to define the element type and properties.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1084,6 +1106,12 @@ def element_callback(dvNum, compID, compDescript, elemDescripts, specialDVs, **k
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (10/21) - \large TACS Problem Setup}
+\textcolor{red}{\textit{This file is separate from the runscript and is used to specify the TACS setup.}}
+
+\vspace{0.25cm}
+
+Set up the TACS problem, defining the functions of interest and any additional structural loads.
+
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1107,6 +1135,9 @@ def problem_setup(scenario_name, fea_assembler, problem):
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (11/21) - \large Solver Setup}
+
+Set up the MPHYS components by defining the solvers: DAFoam (aerodynamic analysis), TACS (structural analysis), and MELD (load and displacement transfer).
+
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1136,6 +1167,8 @@ class Top(Multipoint):
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (12/21) - \large Scenario Setup}
+
+Define the design variable component and geometry handler, as well as the aerostructural solvers and MPHYS scenario. The initialized solvers are responsible for converging the aerostructural analysis blocks. The scenario combines all of the solvers to configure the aerostructural problem.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1165,6 +1198,7 @@ self.mphys_add_scenario(
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (13/21) - \large Aerostructural Connections}
+Connect the aerodynamic and structural design variables to ensure the required data is provided to all components.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1187,6 +1221,8 @@ self.connect("mesh_struct.x_struct0", "geometry.x_struct_in")
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (14/21) - \large Problem Configuration}
+Configure the optimization problem, setting the functions of interest and retrieving the initialized computational meshes.
+
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1214,6 +1250,7 @@ def configure(self):
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (15/21) - \large FFD Variable Definitions}
+Define the FFD-based design variables in the same way as for the aerodynamic optimization case.
   \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1240,6 +1277,7 @@ nShapes = self.geometry.nom_addGeoDVLocal(dvName="shape", pointSelect=PS)
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (16/21) - \large Angle of Attack Definition}
+Define the angle of attack design variable in the same way as for the aerodynamic optimization case, and add it as a function in DAFoam.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1261,6 +1299,7 @@ self.cruise.aero_post.add_dv_func("aoa", aoa)
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (17/21) - \large Geometric Constraints}
+Configure the geometric constraints, for example leading edge / trailing edge constraints, thickness constraints, and volume constraints.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1279,6 +1318,7 @@ self.geometry.nom_add_LETEConstraint("tecon", volID=0, faceID="iHigh")
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (18/21) - \large Design Variables}
+Initialize the design variables in OpenMDAO and connect them to the respective values in the optimization problem. Specify any bounds or variable scaling as desired.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1303,6 +1343,7 @@ self.add_design_var("aoa", lower=0.0, upper=10.0, scaler=1.0)
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (19/21) - \large Objective and Constraints}
+Define the objective and constraint functions. Specify the lower / upper / equivalent values for constraints as well as any function scaling.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1321,6 +1362,7 @@ self.add_constraint("geometry.lecon", equals=0.0, scaler=1.0, linear=True)
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (20/21) - \large Optimization Settings}
+Finalize the OpenMDAO problem definition and specify the optimizer, along with its options.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1354,6 +1396,7 @@ prob.driver.hist_file = "OptView.hst"
 
 %---------------------------------------------------------------%
 \begin{frame}[fragile]{runScript.py Details (21/21) - \large Task Runner}
+Run the case. Using the built in OpenMDAO features one can run the analysis, run the optimization, run the adjoint, or check the total derivatives.
 \scriptsize
 \lstset{ language=bash }
 \begin{lstlisting}
@@ -1424,7 +1467,7 @@ else:
 \begin{frame}[fragile]{Summary}
   \begin{itemize}
     \setlength\itemsep{1em}
-    \item For aerostructural analysis or optimization, we couple DAFoam with TACS, a flexible finite element solver open source at \url{https://github.com/smdogroup/tacs}
+    \item For aerostructural analysis or optimization, we couple DAFoam with TACS, a flexible, opensource, finite element solver available at \url{https://github.com/smdogroup/tacs}
     \item OpenMDAO manages the solver coupling and data passage, streamlining the configuration for the user.
     \item The runscript is largely an OpenMDAO component, defining the optimizaion scenario(s) and problem options.
   \end{itemize}
