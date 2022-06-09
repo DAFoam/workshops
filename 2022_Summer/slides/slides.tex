@@ -815,6 +815,17 @@ if args.task == "opt":
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
+\begin{frame}[fragile]{Required Tools / Software}
+  \begin{itemize}
+    \setlength\itemsep{1em}
+    \item The typical MACH packages required for aerodynamic optimization using DAFoam v3 (baseClasses, pySpline, pyGeo, IDWarp, DAFoam, pyOptSparse (optional), OpenMDAO, MPHYS)
+    \item Matching-based Extrapolation for Load and Displacement transfer (MELD), needed for load and displacement transfer. Hosted within FUNtoFEM: \url{https://github.com/smdogroup/funtofem}
+    \item Toolkit for the Analysis of Composite Structures (TACS), needed for finite element analysis: \url{https://github.com/smdogroup/tacs}
+  \end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
 \begin{frame}{Problem Setup}
   \begin{columns}
     \begin{column}{0.5\textwidth}
@@ -1460,6 +1471,17 @@ else:
       \includegraphics[width=1.0\linewidth]{images/aerostruct-resultOpt.png}
     \end{column}
   \end{columns}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Tips for Post-Processing}
+  \begin{itemize}
+    \setlength\itemsep{1em}
+    \item Post-process the aerodynamic (DAFoam) results as for an aerodynamic case.
+    \item To generate structural visualization files, use the included TACS file conversion scripts. Use "f5totec" to convert to Tecplot files or "f5tovtk" to convert to Paraview files. To generate these executables, compile them in the "extern" directory within TACS.
+    \item For both Tecplot and Paraview, DAFoam will render as the deformed aerodynamic mesh of the converged aerostructural analysis / optimization. For the structural analysis, add the structural displacements to the structural mesh coordinates to visualize the deformed shape.
+  \end{itemize}
 \end{frame}
 %---------------------------------------------------------------%
 
