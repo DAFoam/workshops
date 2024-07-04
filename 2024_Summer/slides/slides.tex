@@ -1,0 +1,82 @@
+\documentclass{bredelebeamer}
+\usepackage{graphicx}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{makecell}
+%\usepackage{media9} % for movies
+%\usepackage{multimedia} % for movies
+\usepackage{caption} % for figure caption
+\usepackage{animate}
+\usepackage[final]{listings} % for listing source code
+\usefonttheme[onlymath]{serif} % make the equations look better
+% define box for listing
+\definecolor{myblue}{HTML}{4C72B0}
+\definecolor{myred}{HTML}{C54E52}
+\definecolor{mygreen}{HTML}{56A968}
+\lstset{
+      language=C++,
+      basicstyle=\ttfamily,
+      frame=single,
+      columns=flexible,
+      breaklines=true,
+      commentstyle=\color{mygreen},
+      keywordstyle = \color{myblue},
+      stringstyle  = \color{orange},
+      }
+\usepackage[absolute,overlay]{textpos} 
+\setlength{\parskip}{0.9em}
+\setbeamertemplate{navigation symbols}{}
+\newcommand*\dif{\mathop{}\!\mathrm{d}}
+%%%%%%%%% some settings
+\captionsetup[figure]{labelformat=empty} % remove the prefix 'figure' for figure caption
+\captionsetup[table]{labelformat=empty} % remove the prefix 'table' for figure caption
+\setbeamertemplate{headline}{} %%%%%%%%%%% remove header %%%%%%%%%%%
+\setbeamerfont{frametitle}{size=\Large} %% title font size
+
+%%%%%%%%%% title
+\title[ ]{DAFoam Workshop 2024}
+\subtitle{v3.1.2}
+
+\author{Ping He\\ ~ \\July 25, 2024 }
+
+
+\date[July 25, 2024]{}
+
+\setbeamercolor{title}{fg=Black,bg=White!0}
+\setbeamercolor{frametitle}{fg=Black,bg=White!0}
+%gets rid of footer
+%will override 'frame number' instruction above
+%comment out to revert to previous/default definitions
+\setbeamertemplate{footline}[page number]
+
+\begin{document}
+
+%---------------------------------------------------------------%
+\begin{frame}
+  \titlepage
+\end{frame}
+
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}{Objectives}
+
+After this workshop, you should be able to
+\begin{itemize}
+  \setlength\itemsep{1em}
+ \item list
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[plain]{}
+  \Huge \centering
+  Thank you!
+\end{frame}
+%---------------------------------------------------------------%
+
+\end{document}
