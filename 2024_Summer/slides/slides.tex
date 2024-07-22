@@ -33,7 +33,7 @@
 \captionsetup[table]{labelformat=empty} % remove the prefix 'table' for figure caption
 \setbeamertemplate{headline}{} %%%%%%%%%%% remove header %%%%%%%%%%%
 \setbeamerfont{frametitle}{size=\Large} %% title font size
-
+\renewcommand{\arraystretch}{1.5} % line space in a table
 %%%%%%%%%% title
 \title[ ]{DAFoam Workshop 2024}
 \subtitle{v3.1.2}
@@ -63,20 +63,45 @@
 %---------------------------------------------------------------%
 \begin{frame}{Objectives}
 
-After this workshop, you should be able to
+In this workshop, we will
 \begin{itemize}
   \setlength\itemsep{1em}
- \item list
+ \item Introduce DAFoam's new features.
+ \item Have DAFoam users present their latest research.
+ \item Discuss how to promote a more interactive community.
 \end{itemize}
 
 \end{frame}
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[plain]{}
-  \Huge \centering
-  Thank you!
+\begin{frame}{Schedule (Morning)}
+\small
+\begin{tabularx}{\textwidth}{lX}
+ 09$:$00--09$:$30 & Ping He, Iowa State University. ``Introduction to DAFoam's latest features" \\ 
+ 09$:$30--10$:$00 & Chengyu Wu, Tsinghua University. ``More generalizable data driven turbulence models based on FIML using DAFoam" \\  
+ 10$:$00--10$:$30 & Bernardo Pacini, University of Michigan. ``Multidisciplinary design optimization of propeller-driven aircraft" \\ 
+ 10$:$30--11$:$00 & Omid Bidar, University of Sheffield. ``Data-driven turbulence model augmentation using DAFoam$:$ sparse sensor placement, and aerodynamic shape optimisation" \\  
+  11$:$00--11$:$30 & Uttam Padmanaban, University of Southampton. ``Data assimilation of stalled airfoils using experimental reference data" \\  
+  11$:$30--12$:$30 & How to promote a more interactive DAFoam community \\
+  12$:$30--01$:$30 & Break
+\end{tabularx}
+
 \end{frame}
 %---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{Schedule (Afternoon)}
+\small
+\begin{tabularx}{\textwidth}{lX}
+ 01$:$30--02$:$00 & Jeongbin Park, University of Michigan. ``Ducted hydrokinetic turbine design optimization using DAFoam" \\ 
+ 02$:$00--02$:$30 & Hossein Negahban, University of Quebec in Montreal. ``Aerodynamic shape optimization for morphing wing technology using DAFoam" \\ 
+ 02$:$30--03$:$00 & Karim Ahmed, Iowa State University. ``Field inversion of RANS modeling for transition flows" \\ 
+ 03$:$00--04$:$00 & Free discussion \\ 
+\end{tabularx}
+
+\end{frame}
+%---------------------------------------------------------------%
+
 
 \end{document}
