@@ -1,0 +1,78 @@
+\documentclass{bredelebeamer}
+\usepackage{graphicx}
+\usepackage{amsmath,amsfonts,amsthm}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{makecell}
+%\usepackage{media9} % for movies
+%\usepackage{multimedia} % for movies
+\usepackage{caption} % for figure caption
+\usepackage{animate}
+\usepackage[final]{listings} % for listing source code
+\usefonttheme[onlymath]{serif} % make the equations look better
+% define box for listing
+\definecolor{myblue}{HTML}{4C72B0}
+\definecolor{myred}{HTML}{C54E52}
+\definecolor{mygreen}{HTML}{56A968}
+\lstset{
+      language=C++,
+      basicstyle=\ttfamily,
+      frame=single,
+      columns=flexible,
+      breaklines=true,
+      commentstyle=\color{mygreen},
+      keywordstyle = \color{myblue},
+      stringstyle  = \color{orange},
+      }
+\usepackage[absolute,overlay]{textpos} 
+\setlength{\parskip}{0.9em}
+\setbeamertemplate{navigation symbols}{}
+\newcommand*\dif{\mathop{}\!\mathrm{d}}
+%%%%%%%%% some settings
+\captionsetup[figure]{labelformat=empty} % remove the prefix 'figure' for figure caption
+\captionsetup[table]{labelformat=empty} % remove the prefix 'table' for figure caption
+\setbeamertemplate{headline}{} %%%%%%%%%%% remove header %%%%%%%%%%%
+\setbeamerfont{frametitle}{size=\Large} %% title font size
+\renewcommand{\arraystretch}{1.5} % line space in a table
+%%%%%%%%%% title
+\title[ ]{DAFoam Workshop 2025}
+\subtitle{v4.0.2}
+
+\author{Ping He\\ ~ \\August 14, 2025 }
+
+
+\date[August 14, 2025]{}
+
+\setbeamercolor{title}{fg=Black,bg=White!0}
+\setbeamercolor{frametitle}{fg=Black,bg=White!0}
+%gets rid of footer
+%will override 'frame number' instruction above
+%comment out to revert to previous/default definitions
+\setbeamertemplate{footline}[page number]
+
+\begin{document}
+
+%---------------------------------------------------------------%
+\begin{frame}
+  \titlepage
+\end{frame}
+
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}{Objectives}
+
+This workshop will cover:
+\begin{itemize}
+  \setlength\itemsep{1em}
+ \item Overview of new run scripts, APIs, and solver options
+ \item Introduction to the updated code structure for developers
+ \item Hands-on tutorials and new feature development
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+\end{document}
