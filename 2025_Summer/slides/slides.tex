@@ -97,16 +97,60 @@ Note: We assume you are familiar with DAFoam v3 and will mainly focus on the new
 \end{frame}
 %---------------------------------------------------------------%
 
+%---------------------------------------------------------------%
+\begin{frame}{}
+
+  \begin{center}
+     \noindent \Large{Part 1: User-Focused Features}
+  \end{center}
+
+  \begin{center}
+    \noindent \large{Motivation: let the DAFoam APIs be more consistent with the OpenMDAO standard.}
+ \end{center}
+
+  
+
+  
+  \end{frame}
+  %---------------------------------------------------------------%
+
 
 %---------------------------------------------------------------%
-\begin{frame}{Part 1: User-Focused Features}
+\begin{frame}{Overview of the changes in v4 runScript.py}
 
-\begin{center}
-   \large{1. Overview of the changes in v4 runScript.py}
-\end{center}
+\item DAFoam v2 scripts are completely deprecated, but v3 scrips can be used with minor changes. Let us compare runScript\_v3.py and runScript\_v4.py in examples/NACA0012
+
+\begin{itemize}
+
+  \item The \texttt{-task} flag is changed to be consistent with OpenMDAO
+  \item \texttt{objFunc} is replaced with \texttt{function} in \texttt{daOption}.
+  \item \texttt{addToAdjoint} is no longer needed in \texttt{function}.
+  \item \texttt{alphaName} is replaced with \texttt{patchVelocityInputName} for the angle of attack definition for force (e.g., CD and CL) \texttt{function}.
+  \item \texttt{designVar} is replaced with \texttt{inputInfo} in \texttt{daOption}.
+  \item The aoa function is defined in \texttt{inputInfo} instead of \texttt{configure}
+  \item A new way to define shape for 2D airfoil using \texttt{non\_addShapeFunctionDV}.
+\end{itemize}
 
 \end{frame}
 %---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{Details for the new \texttt{inputInfo} key in \texttt{daOptions}}
+
+  \texttt{inputInfo} defines the input variables for a component in OpenMDAO. Let us check runScript\_test\_inputInto.py in examples/NACA0012
+  
+  \begin{itemize}
+  
+    \item Each key in \texttt{inputInfo} defines an input variable for a component, specified by the \texttt{components} key. Note: one input can be connected to multiple components.
+    \item The name of the key in \texttt{inputInfo} is the name of the input for that component. Run the script and check the N2 diagram in mphys\_n2.html.
+    \item The \texttt{type} key defines the type of this input. Check all available input types from examples/dafoam-4.0.2/src/adjoint/DAInput/*.H
+    \item Each input type has its own customized keys, such as \texttt{patches}, \texttt{fieldName}, and \texttt{distributed}.
+    \item Once an input is defined in \texttt{inputInfo}, we can connect dvs.output to it. Check line 163 in runScript\_test\_inputInto.py
+    \item NOTE: carefully define the inputs to avoid conflicts!
+  \end{itemize}
+  
+  \end{frame}
+  %---------------------------------------------------------------%
 
 
 \end{document}

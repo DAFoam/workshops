@@ -1,0 +1,7 @@
+Dictionary Key: cruise.solver.CD
+@value     36186.4324194797372911 1e-10 1e-12
+Dictionary Key: cruise.solver.CD
+Dictionary Key: shape0-Adjoint
+@value       460.5522409753914417 1e-08 1e-12
+Dictionary Key: shape0-ForwardAD
+@value       453.4770803087950526 1e-08 1e-12

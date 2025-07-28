@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+
+if [ -z "$WM_PROJECT" ]; then
+  echo "OpenFOAM environment not found, forgot to source the OpenFOAM bashrc?"
+  exit 1
+fi
+
+# check if we need to download reg_test_files-main.tar.gz
+if [ -f "reg_test_files-main.tar.gz" ]; then
+  echo "reg_test_files-main.tar.gz already exists."
+else
+  echo "Downloading reg_test_files-main.tar.gz"
+  wget https://github.com/DAFoam/reg_test_files/archive/refs/heads/main.tar.gz -O reg_test_files-main.tar.gz --no-check-certificate
+fi
+
+# remove the old one and extract the tarball
+rm -rf reg_test_files-main
+tar -xvf reg_test_files-main.tar.gz
+
+function runRegTests() 
+{
+  rm -rf DAFoam_Test_${1}.txt
+  if [ -z "$DF_CHECK_COVERAGE" ]; then
+    mpirun --oversubscribe -np 4 python runRegTests_${1}.py $@ | tee DAFoam_Test_${1}.txt 
+    if [ "${PIPESTATUS[0]}" -ne "0" ]; then 
+      echo "${1}: Failed!"
+      exit 1
+    fi
+    # need to replace the "[0m" for mphys tests 
+    sed -i 's/\[0m//g' DAFoam_Test_${1}.txt
+    sed -i 's/[^[:print:]\t]//g' DAFoam_Test_${1}.txt
+    python testFuncs.py refs/DAFoam_Test_${1}Ref.txt DAFoam_Test_${1}.txt
+    if [ "$?" -ne "0" ]; then 
+      echo "${1}: Failed!"
+      exit 1
+    else
+      echo "${1}: Success!"
+    fi
+  elif [ "$DF_CHECK_COVERAGE" = "1" ]; then
+    mpirun --oversubscribe -np 4 coverage run runRegTests_${1}.py $@ | tee DAFoam_Test_${1}.txt 
+    if [ "${PIPESTATUS[0]}" -ne "0" ]; then 
+      echo "${1}: Failed!"
+      exit 1
+    fi
+    echo "DF_CHECK_COVERAGE key found! Do NOT check the regression test values!"
+  else
+    echo "DF_CHECK_COVERAGE key not valid! Set it to 1!"
+    exit 1
+  fi
+}
+
+function runSerialRegTests() 
+{
+  rm -rf DAFoam_Test_${1}.txt
+  if [ -z "$DF_CHECK_COVERAGE" ]; then
+    python runSerialRegTests_${1}.py $@ | tee DAFoam_Test_${1}.txt 
+    if [ "${PIPESTATUS[0]}" -ne "0" ]; then 
+      echo "${1}: Failed!"
+      exit 1
+    fi
+    # need to replace the "[0m" for mphys tests 
+    sed -i 's/\[0m//g' DAFoam_Test_${1}.txt
+    sed -i 's/[^[:print:]\t]//g' DAFoam_Test_${1}.txt
+    python testFuncs.py refs/DAFoam_Test_${1}Ref.txt DAFoam_Test_${1}.txt
+    if [ "$?" -ne "0" ]; then 
+      echo "${1}: Failed!"
+      exit 1
+    else
+      echo "${1}: Success!"
+    fi
+  elif [ "$DF_CHECK_COVERAGE" = "1" ]; then
+    coverage run runSerialRegTests_${1}.py $@ | tee DAFoam_Test_${1}.txt 
+    if [ "${PIPESTATUS[0]}" -ne "0" ]; then 
+      echo "${1}: Failed!"
+      exit 1
+    fi
+    echo "DF_CHECK_COVERAGE key found! Do NOT check the regression test values!"
+  else
+    echo "DF_CHECK_COVERAGE key not valid! Set it to 1!"
+    exit 1
+  fi
+}
+
+function runUnitTests()
+{
+  rm -rf DAFoam_Test_${1}.txt
+  mpirun --oversubscribe -np 4 python runUnitTests_${1}.py $@ | tee DAFoam_Test_${1}.txt 
+  if [ "${PIPESTATUS[0]}" -ne "0" ]; then 
+    echo "${1}: Failed!"
+    exit 1
+  fi
+}
+
+function runSerialUnitTests()
+{
+  rm -rf DAFoam_Test_${1}.txt
+  python runSerialUnitTests_${1}.py $@ | tee DAFoam_Test_${1}.txt 
+  if [ "${PIPESTATUS[0]}" -ne "0" ]; then 
+    echo "${1}: Failed!"
+    exit 1
+  fi
+}
+
+# Find all files matching the regression test script pattern
+for file in runRegTests_*.py; do
+  # Check if the file exists to avoid wildcard issues
+  if [[ -f "$file" ]]; then
+    # Extract the part between "runRegTests_" and ".py"
+    extracted_name="${file#runRegTests_}"
+    extracted_name="${extracted_name%.py}"
+    
+    # run the regression tests
+    runRegTests "$extracted_name"
+  fi
+done
+
+# Find all files matching the regression test script pattern
+for file in runSerialRegTests_*.py; do
+  # Check if the file exists to avoid wildcard issues
+  if [[ -f "$file" ]]; then
+    # Extract the part between "runSerialRegTests_" and ".py"
+    extracted_name="${file#runSerialRegTests_}"
+    extracted_name="${extracted_name%.py}"
+    
+    # run the regression tests
+    runSerialRegTests "$extracted_name"
+  fi
+done
+
+# Find all files matching the unit test script pattern
+for file in runUnitTests_*.py; do
+  # Check if the file exists to avoid wildcard issues
+  if [[ -f "$file" ]]; then
+    # Extract the part between "runUnitTests_" and ".py"
+    extracted_name="${file#runUnitTests_}"
+    extracted_name="${extracted_name%.py}"
+    
+    # run the regression tests
+    runUnitTests "$extracted_name"
+  fi
+done
+
+# Find all files matching the unit test script pattern
+for file in runSerialUnitTests_*.py; do
+  # Check if the file exists to avoid wildcard issues
+  if [[ -f "$file" ]]; then
+    # Extract the part between "runSerialUnitTests_" and ".py"
+    extracted_name="${file#runSerialUnitTests_}"
+    extracted_name="${extracted_name%.py}"
+    
+    # run the regression tests
+    runSerialUnitTests "$extracted_name"
+  fi
+done
+
+echo " "
+echo "*** All Tests Passed! ***"

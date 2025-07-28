@@ -201,7 +201,7 @@ class Top(Multipoint):
 prob = om.Problem()
 prob.model = Top()
 prob.setup(mode="rev")
-om.n2(prob, show_browser=False, outfile="mphys.html")
+om.n2(prob, show_browser=False, outfile="mphys_n2.html")
 
 # initialize the optimization function
 optFuncs = OptFuncs(daOptions, prob)
