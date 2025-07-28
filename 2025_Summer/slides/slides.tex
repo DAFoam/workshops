@@ -118,7 +118,7 @@ Note: We assume you are familiar with DAFoam v3 and will mainly focus on the new
 %---------------------------------------------------------------%
 \begin{frame}{Overview of the changes in v4 runScript.py}
 
-\item DAFoam v2 scripts are completely deprecated, but v3 scrips can be used with minor changes. Let us compare runScript\_v3.py and runScript\_v4.py in examples/NACA0012
+DAFoam v2 scripts are completely deprecated, but v3 scripts can be used with minor changes. Let us compare runScript\_v3.py and runScript\_v4.py in examples/NACA0012
 
 \begin{itemize}
 
@@ -146,7 +146,7 @@ Note: We assume you are familiar with DAFoam v3 and will mainly focus on the new
     \item The \texttt{type} key defines the type of this input. Check all available input types from examples/dafoam-4.0.2/src/adjoint/DAInput/*.H
     \item Each input type has its own customized keys, such as \texttt{patches}, \texttt{fieldName}, and \texttt{distributed}.
     \item Once an input is defined in \texttt{inputInfo}, we can connect dvs.output to it. Check line 163 in runScript\_test\_inputInto.py
-    \item NOTE: carefully define the inputs to avoid conflicts!
+    \item NOTE: Carefully define the inputs to avoid conflicts!
   \end{itemize}
   
   \end{frame}
