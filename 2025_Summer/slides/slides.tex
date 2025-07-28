@@ -116,9 +116,9 @@ Note: We assume you are familiar with DAFoam v3 and will mainly focus on the new
 
 
 %---------------------------------------------------------------%
-\begin{frame}{Overview of the changes in v4 runScript.py}
+\begin{frame}{New interfaces in v4 runScript.py}
 
-\item DAFoam v2 scripts are completely deprecated, but v3 scrips can be used with minor changes. Let us compare runScript\_v3.py and runScript\_v4.py in examples/NACA0012
+DAFoam v2 scripts are completely deprecated, but v3 scripts can be used with minor changes. Let us compare runScript\_v3.py and runScript\_v4.py in examples/NACA0012
 
 \begin{itemize}
 
@@ -135,7 +135,7 @@ Note: We assume you are familiar with DAFoam v3 and will mainly focus on the new
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}{Details for the new \texttt{inputInfo} key in \texttt{daOptions}}
+\begin{frame}{Details of the new \texttt{inputInfo} key in \texttt{daOptions}}
 
   \texttt{inputInfo} defines the input variables for a component in OpenMDAO. Let us check runScript\_test\_inputInto.py in examples/NACA0012
   
@@ -146,11 +146,46 @@ Note: We assume you are familiar with DAFoam v3 and will mainly focus on the new
     \item The \texttt{type} key defines the type of this input. Check all available input types from examples/dafoam-4.0.2/src/adjoint/DAInput/*.H
     \item Each input type has its own customized keys, such as \texttt{patches}, \texttt{fieldName}, and \texttt{distributed}.
     \item Once an input is defined in \texttt{inputInfo}, we can connect dvs.output to it. Check line 163 in runScript\_test\_inputInto.py
-    \item NOTE: carefully define the inputs to avoid conflicts!
+    \item NOTE: Carefully define the inputs to avoid conflicts!
   \end{itemize}
   
   \end{frame}
   %---------------------------------------------------------------%
 
 
+%---------------------------------------------------------------%
+\begin{frame}{New interfaces for MDO problems}
+
+  Let us comopare runScript\_v3.py and runScript\_v4.py in examples/MACH\_Tutorial\_Wing
+  
+  \begin{itemize}
+  
+    \item The \texttt{couplingInfo} key is deprecated, and the MDO coupling is now defined in \texttt{inputInfo} and \texttt{outputInfo}.
+    \item The aerostructural problem has a \texttt{forceCoupling} component, which replaces the \texttt{getForce} component in v3. This component uses the volume coordinates and states as input and outputs the surface force (f\_aero). So we need to define this f\_aero as the output in \texttt{outputInfo}. 
+    \item The \texttt{forceCouplingOutput} type in \texttt{outputInfo} will tell mphys\_dafoam that we have an aerostructural problem, and it will then trigger the aero-structural related codes in mphys\_dafoam.py.
+    \item The \texttt{forceCoupling} component will automatically get the volume coordinates and states from the solver component, so we don't need to manually define these inputs in \texttt{inputInfo}.
+    
+    
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{New interfaces for unsteady problems}
+
+   Let us check runScript.py in examples/Cylinder
+  
+  \begin{itemize}
+  \item We treat the unsteady flow/adjoint solver as an explicit component in OpenMDAO (line 116).
+  \item The inputs for this explicit component are defined by \texttt{add\_design\_var} and the outputs are defined in \texttt{unsteadyCompOutput}. Here, each key (e.g., obj) in \texttt{unsteadyCompOutput} is the actual function used in optimization. Their sub-keys (e.g., CD and CL) are the functions defined in \texttt{daOption-function}. If one defines more than one sub-key, these functions will be added together.  
+   \item Define unsteady adjoint related parameters in \texttt{unsteadyAdjoint}.
+   \item All components are promoted, so you should directly use \texttt{shape}, instead of \texttt{dvs.shape}.
+   
+    
+    
+\end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
 \end{document}
+
