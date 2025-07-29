@@ -105,11 +105,8 @@ Note: We assume you are familiar with DAFoam v3 and will mainly focus on the new
   \end{center}
 
   \begin{center}
-    \noindent \large{Motivation: let the DAFoam APIs be more consistent with the OpenMDAO standard.}
+    \noindent \large{Objective: let the DAFoam APIs be more consistent with the OpenMDAO standard.}
  \end{center}
-
-  
-
   
   \end{frame}
   %---------------------------------------------------------------%
@@ -180,10 +177,48 @@ DAFoam v2 scripts are completely deprecated, but v3 scripts can be used with min
   \item The inputs for this explicit component are defined by \texttt{add\_design\_var} and the outputs are defined in \texttt{unsteadyCompOutput}. Here, each key (e.g., obj) in \texttt{unsteadyCompOutput} is the actual function used in optimization. Their sub-keys (e.g., CD and CL) are the functions defined in \texttt{daOption-function}. If one defines more than one sub-key, these functions will be added together.  
    \item Define unsteady adjoint related parameters in \texttt{unsteadyAdjoint}.
    \item All components are promoted, so you should directly use \texttt{shape}, instead of \texttt{dvs.shape}.
-   
-    
     
 \end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}{}
+
+  \begin{center}
+     \noindent \Large{Part 2: Developer-Focused Updates}
+  \end{center}
+
+  \begin{center}
+    \noindent \large{Objective: make the DAFoam development easier.}
+ \end{center}
+  
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}{Improvements in DAFoam v4 development}
+
+\begin{table}
+\centering
+\begin{tabular}{ccc}
+\hline
+& v3 & v4 \\
+\hline
+First build time & $>$30 mins & $\sim$10 mins \\
+Re-build time & $>$30 mins & $\ll$10 mins \\
+Build command & Multiple commands & One command \\
+Parallel build & Fixed 4 cores & Max available cores \\ 
+DAFoam libs &  Three libs (e.g., incomp) & One lib \\
+Add new DVs & Multiple new functions & One new function \\
+Add new partials & Ad-hoc & Standardized \\
+Add new in/out & Ad-hoc & Standardized \\
+
+\hline
+\end{tabular}
+\end{table}
+
 \end{frame}
 %---------------------------------------------------------------%
 
