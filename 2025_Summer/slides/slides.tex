@@ -20,6 +20,7 @@
       frame=single,
       columns=flexible,
       breaklines=true,
+      showstringspaces=false,
       commentstyle=\color{mygreen},
       keywordstyle = \color{myblue},
       stringstyle  = \color{orange},
@@ -264,7 +265,7 @@ Add new in/out & Ad-hoc & Standardized \\
  \begin{lstlisting}
 ./Allmake
  \end{lstlisting}
- \item That is it. The Docker image has a pre-compiled dafoam v4.0.2, so the above command will only verify the pre-compiled version and will take less than 30 seconds.
+ \item That is it. The Docker image has a pre-compiled dafoam v4.0.2, so the above command will only verify the pre-compiled version and will take less than 30 seconds. At the end of the terminal output, you should see: "Build Successful!"
  \item NOTE: If you modify DAFoam and want to rebuild it, simply run the above command again. DO NOT run Allclean. DAFoam will automatically compile \textbf{only} the new files you change. This saves a lot of time!
 \end{itemize}
   
@@ -279,7 +280,7 @@ Add new in/out & Ad-hoc & Standardized \\
   \item Change existing functions/variables in the C++ layer
   \item Add a new parameter in DAOption
   \item Add a new C++ function and expose it to the Python layer
-  \item Add a new function
+  \item Add a new objective/constraint function
   \item Add a new design variable (input)
   \item Add a new turbulence model
   \item Add a new boundary condition
@@ -287,6 +288,153 @@ Add new in/out & Ad-hoc & Standardized \\
   \item Add new coupling variables for MDO
     
 \end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Change existing functions/variables in the C++ layer}
+
+\begin{itemize}
+  \item cd into \$HOME/dafoam/repos/dafoam/
+  \item Use the vi command to open the src/adjoint/DASolver/DASimpleFoam/DASimpleFoam.C file
+  \item Add a print statement at the end of the solverPrimal function
+ \begin{lstlisting}
+Info << "This is my first change!" << endl;
+ \end{lstlisting}
+  \item Recompile DAFoam (make sure you see "Build Successful!"):
+ \begin{lstlisting}
+./Allmake
+ \end{lstlisting}
+  \item cd into \$HOME/mount/examples/NACA0012
+  \item Run:
+\begin{lstlisting}
+chmod -R 750 *
+./preProcessing.sh
+python runScript_v4.py -task=run_model
+\end{lstlisting}
+ \item Verify if you see the new print statement in the terminal output
+    
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a new parameter in DAOption (1/2)}
+
+\begin{itemize}
+  \item cd into \$HOME/dafoam/repos/dafoam/
+  \item Use the vi command to open the dafoam/pyDAFoam.py file and add this to the \_\_init\_\_ function of the DAOPTION class:
+ \begin{lstlisting}
+self.testOption = 3.0
+ \end{lstlisting}
+ \item NOTE: We need to give default values for str, int, float, and list options defined here (this helps DAFoam determine the datatype). For dict options, we can leave it blank.
+ \item Open src/adjoint/DASolver/DASimpleFoam/DASimpleFoam.C and add this line at the end of the solverPrimal function
+ \begin{lstlisting}
+scalar testOption = 
+    daOptionPtr_->getOption<scalar>("testOption");
+Info << "My test option is: " << testOption << endl;
+ \end{lstlisting}
+ \item Recompile DAFoam
+
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a new parameter in DAOption (2/2)}
+
+\begin{itemize}
+ \item In \$HOME/mount/examples/NACA0012, run
+\begin{lstlisting}
+python runScript_v4.py -task=run_model
+\end{lstlisting}
+  \item Verify if you see the new testOption value (3.0; default value) in the terminal output
+  \item You can also change the default value in the runScript.py. For example, you can add the following line to the daOption dict in \$HOME/mount/examples/NACA0012/runScript\_v4.py.
+ \begin{lstlisting}
+"testOption": 15.2,
+ \end{lstlisting}
+\item Run the following again and see if the testOption's value is changed to 15.2 in the terminal output.
+\begin{lstlisting}
+python runScript_v4.py -task=run_model
+\end{lstlisting}
+\item NOTE: The daOption defined in runScript.py will be passed to the C++ layer \textbf{only once} (when the DAFoam is initialized). If you need to pass the daOption from Python to C++ again, you need to manually call updateDAOption(). Here is \href{https://github.com/mdolab/dafoam/blob/27d7279e32e62fa2c65399f3441836aefc8401c5/dafoam/pyDAFoam.py#L825}{\textcolor{blue}{[an example]}}.
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a C++ func and expose it to the Python layer (1/2)}
+
+\begin{itemize}
+  \item cd into \$HOME/dafoam/repos/dafoam/, open src/adjoint/DASolver/DASolver.H, and add a public member:
+ \begin{lstlisting}
+void printMeshSize() 
+{
+    label nCells = meshPtr_->nCells();
+    Info << "Mesh cells: " << nCells << endl;
+}
+ \end{lstlisting}
+  \item Open src/pyDASolvers/DASolvers.H, and add a public member:
+ \begin{lstlisting}
+void printMeshSize()
+{
+    DASolverPtr_->printMeshSize();
+}
+ \end{lstlisting}
+  \item Open src/pyDASolvers/pyDASolvers.pyx, and add this to \texttt{cppclass DASolvers}:
+ \begin{lstlisting}
+void printMeshSize()
+ \end{lstlisting}
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a C++ func and expose it to the Python layer (2/2)}
+
+\begin{itemize}
+  \item Open src/pyDASolvers/pyDASolvers.pyx,  and add this to \texttt{cdef class pyDASolvers:}
+ \begin{lstlisting}
+def printMeshSize(self):
+    self._thisptr.printMeshSize()
+ \end{lstlisting}
+ \item Open dafoam/pyDAFoam.py and add this line to the end of the \_\_call\_\_ function
+  \begin{lstlisting}
+self.solver.printMeshSize()
+ \end{lstlisting}
+ \item Recompile DAFoam
+ \item In \$HOME/mount/examples/NACA0012, run the following, and you should see the printed statement from the terminal output
+ \begin{lstlisting}
+python runScript_v4.py -task=run_model
+\end{lstlisting}
+\item Alternatively, you can call this new function in runScript\_v4.py by adding this line after \texttt{prob.run\_model()}
+ \begin{lstlisting}
+print("Print in the runScript")
+prob.model.scenario1.coupling.solver.DASolver.solver.printMeshSize()
+\end{lstlisting}
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a new objective/constraint function}
+
+\begin{itemize}
+  \item Open src/pyDASolvers/pyDASolvers.pyx,  and add this to \texttt{cdef class pyDASolvers:}
+ \begin{lstlisting}
+def printMeshSize(self):
+    self._thisptr.printMeshSize()
+ \end{lstlisting}
+\end{itemize}
+
 \end{frame}
 %---------------------------------------------------------------%
 
