@@ -175,7 +175,7 @@ DAFoam v2 scripts are completely deprecated, but v3 scripts can be used with min
   \begin{itemize}
   \item We treat the unsteady flow/adjoint solver as an explicit component in OpenMDAO (line 116).
   \item The inputs for this explicit component are defined by \texttt{add\_design\_var} and the outputs are defined in \texttt{unsteadyCompOutput}. Here, each key (e.g., obj) in \texttt{unsteadyCompOutput} is the actual function used in optimization. Their sub-keys (e.g., CD and CL) are the functions defined in \texttt{daOption-function}. If one defines more than one sub-key, these functions will be added together.  
-   \item Define unsteady adjoint related parameters in \texttt{unsteadyAdjoint}.
+   \item Define unsteady adjoint-related parameters in \texttt{unsteadyAdjoint}.
    \item All components are promoted, so you should directly use \texttt{shape}, instead of \texttt{dvs.shape}.
     
 \end{itemize}
@@ -219,6 +219,74 @@ Add new in/out & Ad-hoc & Standardized \\
 \end{tabular}
 \end{table}
 
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}{DAFoam layers: C++, Cython, and Python}
+
+\begin{figure}
+\hspace*{-1.1cm}
+\includegraphics[width=1.18\linewidth]{images/dafoam_layers.pdf} 
+\caption{There are three code layers in DAFoam: C++, Cython, and Python. Each layer takes source code or libraries as input in the vertical direction and outputs libraries to the horizontal direction.}
+\end{figure}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{New features in v4 layer interaction}
+
+
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+ \item We can directly pass a Python array from Python to the C++ layer. There is no need to use PETSc vectors as inputs/outputs. \href{https://github.com/mdolab/dafoam/blob/v4.0.2/src/pyDASolvers/pyDASolvers.pyx#L253}{\textcolor{blue}{[Link to an example]}}.
+ \item The Python layer can call the C++ layer's members, AND the C++ layer can also call the Python layer's members. 
+ \href{https://github.com/mdolab/dafoam/blob/v4.0.2/src/adjoint/DARegression/DARegression.C#L512}{\textcolor{blue}{[Link to an example]}}.
+ \item The C++ layer no longer separate incompressible, compressible, and solid libs. All these flow conditions are now compiled into one library.
+\end{itemize}
+  
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Let us build DAFoam}
+
+
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+  \item Open a terminal and cd to workshops/2025\_Summer
+ \item Create a DAFoam Docker container v4.0.2. Refer to \href{https://dafoam.github.io/mydoc_get_started_run.html}{\textcolor{blue}{[this page]}} for the commands.
+ \item In the container, cd to /home/dafoam/repos/dafoam, and run
+ \begin{lstlisting}
+./Allmake
+ \end{lstlisting}
+ \item That is it. The Docker image has a pre-compiled dafoam v4.0.2, so the above command will only verify the pre-compiled version and will take less than 30 seconds.
+ \item NOTE: If you modify DAFoam and want to rebuild it, simply run the above command again. DO NOT run Allclean. DAFoam will automatically compile \textbf{only} the new files you change. This saves a lot of time!
+\end{itemize}
+  
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}{How to add new features in DAFoam v4?}
+  Outline
+  \begin{itemize}
+  \item Change existing functions/variables in the C++ layer
+  \item Add a new parameter in DAOption
+  \item Add a new C++ function and expose it to the Python layer
+  \item Add a new function
+  \item Add a new design variable (input)
+  \item Add a new turbulence model
+  \item Add a new boundary condition
+  \item Add a new solver
+  \item Add new coupling variables for MDO
+    
+\end{itemize}
 \end{frame}
 %---------------------------------------------------------------%
 
