@@ -281,9 +281,9 @@ Add new in/out & Ad-hoc & Standardized \\
   \item Add a new parameter in DAOption
   \item Add a new C++ function and expose it to the Python layer
   \item Add a new objective/constraint function
-  \item Add a new design variable (input)
-  \item Add a new turbulence model
+  \item Add a new design variable or input
   \item Add a new boundary condition
+  \item Add a new turbulence model
   \item Add a new solver
   \item Add new coupling variables for MDO
     
@@ -425,18 +425,124 @@ prob.model.scenario1.coupling.solver.DASolver.solver.printMeshSize()
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{Add a new objective/constraint function}
+\begin{frame}[fragile]{Add a new objective/constraint function (1/2)}
 
 \begin{itemize}
-  \item Open src/pyDASolvers/pyDASolvers.pyx,  and add this to \texttt{cdef class pyDASolvers:}
- \begin{lstlisting}
-def printMeshSize(self):
-    self._thisptr.printMeshSize()
+  \item cd into src/adjoint/DAFunction
+  \item Copy DAFunctionPatchMean.C into DAFunctionTestFunc.C and copy DAFunctionPatchMean.H into DAFunctionTestFunc.H
+  \item Open DAFunctionTestFunc.C and replace all "DAFunctionPatchMean" with "DAFunctionTestFunc". Do the same for DAFunctionTestFunc.H
+  \item (Important!) Replace TypeName("patchMean") with TypeName("testFunc") in DAFunctionTestFunc.H. Here, TypeName defines the function name we will use in runScript.py
+  \item Modify DAFunctionTestFunc.C and DAFunctionTestFunc.H as needed to compute and return the function value in calcFunction(). Ensure that the function value is summed across all processors. (Call the \texttt{reduce} command).
+  \item Add a print statement at the end of the calcFunction() function, which will be used to verify the implementation.
+    \begin{lstlisting}
+Info << "This is my test function " << endl;
  \end{lstlisting}
+ \item Add DAFunction/DAFunctionTestFunc.C to src/adjoint/Make/files
+
 \end{itemize}
 
 \end{frame}
 %---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a new objective/constraint function (2/2)}
+
+\begin{itemize}
+  \item Recompile DAFoam
+  \item In \$HOME/mount/examples/NACA0012/runScript\_v4.py, add these lines to the \texttt{function} dict from daOption.
+  \begin{lstlisting}
+ "Test": {
+    "type": "testFunc",
+    "source": "patchToFace",
+    "patches": ["wing"],
+    "varName": "p",
+    "varType": "scalar",
+    "index": 0,
+    "scale": 1.0},
+ \end{lstlisting}
+  \item Then, run the following, and you should see the function value and custom print statement in the terminal output.
+ \begin{lstlisting}
+python runScript_v4.py -task=run_model
+\end{lstlisting}
+\item NOTE: DAFoam will take care of the derivative computation for this new function automatically.
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a new design variable or input (1/2)}
+
+\begin{itemize}
+  \item cd into src/adjoint/DAInput
+  \item Copy DAInputPatchVelocity.C into DAInputPatchVx.C and copy DAInputPatchVelocity.H into DAInputPatchVx.H
+  \item Open DAInputPatchVx.C and replace all "DAInputPatchVelocity" with "DAInputPatchVx". Do the same for DAInputPatchVx.H
+  \item (Important!) Replace TypeName("patchVelocity") with TypeName("patchVx") in DAInputPatchVx.H.
+  \item Modify DAInputPatchVx.C and  DAInputPatchVx.H as needed to assign the Vx value from input[0] to the OpenFOAM's U field.
+  \item Change "return 2" to "return 1" for the size() func in DAInputPatchVx.H
+  \item Add DAInput/DAInputPatchVx.C to src/adjoint/Make/files
+  \item Recompile DAFoam
+  \item NOTE: that is all the changed needed to add a new design variable, the rest of the operations, such as computing the partial derivatives dF/dX or dR/dX, will be automatically handled
+
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a new design variable or input (1/2)}
+
+\begin{itemize}
+  \item In \$HOME/mount/examples/xxxx/runScript.py, add these lines to the \texttt{inputInfo} dict from daOption.
+  \begin{lstlisting}
+ "vx_in": {
+    "type": "patchVx",
+    "patches": ["inlet"],
+    "components": ["solver", "function"]},
+ \end{lstlisting}
+ \item In the same runScript, add these lines to the \texttt{configure} function.
+\begin{lstlisting}
+self.dvs.add_output("vx_in", val=np.array([10.0]))
+self.connect("vx_in", "scenario1.vx_in")
+self.add_design_var("vx_in", upper=50.0, scaler=1.0)
+ \end{lstlisting}
+\item Finally, run the following, and verify the inlet velocity in Paraview
+ \begin{lstlisting}
+python runScript.py -task=run_model
+\end{lstlisting}
+\item You can also change the default value from 10 to 20 in the \texttt{self.dvs.add\_output} call, run the script again, and then verify the new inlet value in Paraview
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a new boundary condition}
+
+\begin{itemize}
+  \item Copy a template of the boundary condition .C and .H files from OpenFOAM and paste them to src/adjoint/DAMisc/.
+  \item Modify the .C and .H file as needed. Remember to change TypeName("your\_new\_bc\_name") in the .H file to a custom name that has not been used in OpenFOAM.
+  \item Add the .C file's path to src/adjoint/Make/files
+  \item Recompile DAFoam
+  \item You can use your new boundary condition now. Remember to use your custom name.
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a new turbulence model}
+
+\begin{itemize}
+  \item Copy a template of the boundary condition .C and .H files from OpenFOAM and paste them to src/adjoint/DAMisc/.
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
 
 \end{document}
 
