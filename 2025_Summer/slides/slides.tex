@@ -282,11 +282,11 @@ Add new in/out & Ad-hoc & Standardized \\
   \item Add a new C++ function and expose it to the Python layer
   \item Add a new objective/constraint function
   \item Add a new design variable or input
+  \item Add new coupling variables for MDO
   \item Add a new boundary condition
   \item Add a new turbulence model
   \item Add a new solver
-  \item Add new coupling variables for MDO
-    
+
 \end{itemize}
 \end{frame}
 %---------------------------------------------------------------%
@@ -534,10 +534,58 @@ python runScript.py -task=run_model
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{Add a new turbulence model}
+\begin{frame}[fragile]{Add a new turbulence model (1/2)}
 
 \begin{itemize}
-  \item Copy a template of the boundary condition .C and .H files from OpenFOAM and paste them to src/adjoint/DAMisc/.
+  \item Copy the turbulence model .C and .H files from OpenFOAM and paste (use custom names like mySA.C and mySA.H) them to src/newTurbModels/models.
+  \item Replace the old turbulence class name with your new turbulence name. Don't forget to assign a custom name for the TypeName in the .H file.
+  \item The turbulence model here is used to initialize the parent class and turbulence variable. So we need do delete all intermediate functions or variables and keep only these things: (1) The initialization of eddyViscosity and turbulence variables, such as nuTilda\_, k\_, omega\_. (2) All the virtual function, (3) An empty correct() function.
+  \item In src/newTurbModels/compressible, copy makeSpalartAllmarasFv3Compressible.C and paste it into sth like makeMySAModelCompressible.C. Then, in makeMySAModelCompressible.C, replace  SpalartAllmarasFv3 with your custom turbulence name. Finally, add makeMySAModelCompressible.C to src/newTurbModels/compressible/Make/files
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a new turbulence model (2/2)}
+
+\begin{itemize}
+  \item Do the same to create makeMySAModelIncompressible.C file in src/newTurbModels/incompressible
+  \item In addition to the dummy turbulence initialization class above, we need to add the actual turbulence model computation to the DATurbulenceModel class.
+  \item First, in /src/adjoint/DAModel/DATurbulenceModel, copy DASpalartAllmaras.C and DASpalartAllmaras.H and paste them to custom names.
+  \item Replace the old turbulence class name with your new turbulence name. Don't forget to assign a custom name for the TypeName in the .H file.
+  \item Modify the the custom .C and .H files as needed. Follow the code structure from existing model implementations. The actual solution of the turbulence model should be implemented in the calcResiduals() function.
+  \item Add your custom .C file's path to src/adjoint/Make/files
+  \item Recompile DAFoam, and your new turbulence model is ready to use.
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add new coupling variables for MDO (1/2)}
+
+\begin{itemize}
+  \item In MDO, we often need to extract boundary variables from the solver and pass these variables to another solver. Examples include the surface force for aero-structural coupling and the surface temperature for aero-thermal coupling. 
+  \item Here we go over the process of extracting surface nodal force for aero-structural coupling.
+  \item First, we need to add a child class (DAOutputForceCoupling) to src/adjoint/DAOutput.
+  \item In DAOutputForceCoupling.H, we need to define the size of the surface nodal force, and set distributed to 1, meaning each processor owns and extracts their own surface nodal force values.
+  \item In DAOutputForceCoupling.C, we need to implement how to extract the surface nodal force values, and then assign them to the \texttt{output} variable in the \texttt{run} function.
+  \item This output is ready to use in the Python layer.
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add new coupling variables for MDO (2/2)}
+
+\begin{itemize}
+  \item Next, we need to add a new explicit component called DAFoamForces to dafoam/mphys/mphys\_dafoam.py. This component's inputs are the states and volume coordinate, and the output is the surface nodal forces.
+  \item The compute method in the DAFoamForces component calls the calcOutput() function to extract the nodal forces and assign them to the forces array. The outputName and outputType are defined in outputInfo in runScript.py
+  \item The compute\_jacvec\_product method in DAFoamForces component calls the calcJacTVecProduct() function to compute partial derivatives 
 \end{itemize}
 
 \end{frame}
