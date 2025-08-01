@@ -252,25 +252,39 @@ Add new in/out & Ad-hoc & Standardized \\
 \end{frame}
 %---------------------------------------------------------------%
 
-
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{Let us build DAFoam}
+\begin{frame}[fragile]{Structure of the DAFoam Python layer (1/2)}
 
 
 \begin{itemize}
   \setlength\itemsep{0.5em}
-  \item Open a terminal and cd to workshops/2025\_Summer
- \item Create a DAFoam Docker container v4.0.2. Refer to \href{https://dafoam.github.io/mydoc_get_started_run.html}{\textcolor{blue}{[this page]}} for the commands.
- \item In the container, cd to /home/dafoam/repos/dafoam, and run
- \begin{lstlisting}
-./Allmake
- \end{lstlisting}
- \item That is it. The Docker image has a pre-compiled dafoam v4.0.2, so the above command will only verify the pre-compiled version and will take less than 30 seconds. At the end of the terminal output, you should see: "Build Successful!"
- \item NOTE: If you modify DAFoam and want to rebuild it, simply run the above command again. DO NOT run Allclean. DAFoam will automatically compile \textbf{only} the new files you change. This saves a lot of time!
+  \item The main entry point in the Python layer is the DAFoamBuilder class in dafoam/mphys/mphys\_dafoam.py. The self.DASolver = PYDAFOAM call \href{https://github.com/mdolab/dafoam/blob/27d7279e32e62fa2c65399f3441836aefc8401c5/dafoam/mphys/mphys_dafoam.py#L73}{\textcolor{blue}{[link]}} initializes the DASolver, in which all the OpenFOAM flow fields and meshes are initialized. 
+  \item In addition to initializing OpenFOAM fields, DAFoamBuilder also exposes standard functions to MPhys for MDO coupling, such as get\_solver(), get\_coupling\_group\_subsystem().
+  \item The get\_solver() call in DAFoamBuilder just returns the DASolver object initialized above.
+  \item The get\_coupling\_group\_subsystem() call in DAFoamBuilder initializes the DAFoamGroup (an OpenMDAO group), which includes DAFoamSolver, DAFoamWarper, and optionally other MDO coupling components such as DAFoamForces.
+  \item DAFoamSolver is an implicit component that solves the primal nonlinear equations (e.g., flow simulations), the adjoint linear system, and partial derivatives such as dRdX.
+  
 \end{itemize}
   
 \end{frame}
 %---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Structure of the DAFoam Python layer (2/2)}
+
+
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+  \item The DAFoamWarper (IDWarp) in DAFoamGroup is an explicit component for volume mesh deformation. It does in-solver mesh warping for aero-structural coupling.
+  \item The geometry parameterization, e.g., pyGeo, is defined in the runScript.py, instead of in DAFoamGroup
+  \item The get\_mesh\_coordinate\_subsystem() call in DAFoamBuilder just returns the design surface coordinates, which will be used as the initial design geometry
+  \item The get\_pre\_coupling\_subsystem() call in DAFoamBuilder calls DAFoamPrecouplingGroup, which is also the DAFoamWarper component. The DAFoamPrecouplingGroup is mainly used to conduct geometry design variable changes, e.g., twist change.
+  \item The get\_post\_coupling\_subsystem() call in DAFoamBuilder returns the DAFoamFunction component, which computes the values and derivatives of functions defined in runScript.py
+\end{itemize}
+  
+\end{frame}
+%---------------------------------------------------------------%
+
 
 
 %---------------------------------------------------------------%
@@ -288,6 +302,25 @@ Add new in/out & Ad-hoc & Standardized \\
   \item Add a new solver
 
 \end{itemize}
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Let us build DAFoam}
+
+
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+  \item Open a terminal and cd to workshops/2025\_Summer
+ \item Create a DAFoam Docker container v4.0.2. Refer to \href{https://dafoam.github.io/mydoc_get_started_run.html}{\textcolor{blue}{[this page]}} for the commands.
+ \item In the container, cd to /home/dafoam/repos/dafoam, and run
+ \begin{lstlisting}
+./Allmake
+ \end{lstlisting}
+ \item That is it. The Docker image has a pre-compiled dafoam v4.0.2, so the above command will only verify the pre-compiled version and will take less than 30 seconds. At the end of the terminal output, you should see: "Build Successful!"
+ \item NOTE: If you modify DAFoam and want to rebuild it, simply run the above command again. DO NOT run Allclean. DAFoam will automatically compile \textbf{only} the new files you change. This saves a lot of time!
+\end{itemize}
+  
 \end{frame}
 %---------------------------------------------------------------%
 
@@ -534,12 +567,12 @@ python runScript.py -task=run_model
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{Add a new turbulence model (1/2)}
+\begin{frame}[fragile]{Add a new turbulence model (1/3)}
 
 \begin{itemize}
   \item Copy the turbulence model .C and .H files from OpenFOAM and paste (use custom names like mySA.C and mySA.H) them to src/newTurbModels/models.
   \item Replace the old turbulence class name with your new turbulence name. Don't forget to assign a custom name for the TypeName in the .H file.
-  \item The turbulence model here is used to initialize the parent class and turbulence variable. So we need do delete all intermediate functions or variables and keep only these things: (1) The initialization of eddyViscosity and turbulence variables, such as nuTilda\_, k\_, omega\_. (2) All the virtual function, (3) An empty correct() function.
+  \item The turbulence model here is used to initialize the parent class and turbulence variable. So we need to delete all intermediate functions or variables and keep only these things: (1) The initialization of eddyViscosity and turbulence variables, such as nuTilda\_, k\_, omega\_. (2) All the virtual function, (3) An empty correct() function.
   \item In src/newTurbModels/compressible, copy makeSpalartAllmarasFv3Compressible.C and paste it into sth like makeMySAModelCompressible.C. Then, in makeMySAModelCompressible.C, replace  SpalartAllmarasFv3 with your custom turbulence name. Finally, add makeMySAModelCompressible.C to src/newTurbModels/compressible/Make/files
 \end{itemize}
 
@@ -547,7 +580,7 @@ python runScript.py -task=run_model
 %---------------------------------------------------------------%
 
 %---------------------------------------------------------------%
-\begin{frame}[fragile]{Add a new turbulence model (2/2)}
+\begin{frame}[fragile]{Add a new turbulence model (2/3)}
 
 \begin{itemize}
   \item Do the same to create makeMySAModelIncompressible.C file in src/newTurbModels/incompressible
@@ -557,6 +590,18 @@ python runScript.py -task=run_model
   \item Modify the the custom .C and .H files as needed. Follow the code structure from existing model implementations. The actual solution of the turbulence model should be implemented in the calcResiduals() function.
   \item Add your custom .C file's path to src/adjoint/Make/files
   \item Recompile DAFoam, and your new turbulence model is ready to use.
+\end{itemize}
+
+\end{frame}
+%---------------------------------------------------------------%
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a new turbulence model (3/3)}
+
+A few notes:
+\begin{itemize}
+  \item If a turbulence model is already in OpenFOAM, you don't need to add it to src/newTurbulenceModel; however you still need to add it to src/adjoint/DAModel/DATurbulenceModel.
+  \item The actual computation of the turbulence model variable is done by the DATurbulenceModel class, check here for \href{https://github.com/mdolab/dafoam/blob/27d7279e32e62fa2c65399f3441836aefc8401c5/src/adjoint/DASolver/DASimpleFoam/DASimpleFoam.C#L160}{\textcolor{blue}{[an example]}}.
 \end{itemize}
 
 \end{frame}
@@ -585,9 +630,28 @@ python runScript.py -task=run_model
 \begin{itemize}
   \item Next, we need to add a new explicit component called DAFoamForces to dafoam/mphys/mphys\_dafoam.py. This component's inputs are the states and volume coordinate, and the output is the surface nodal forces.
   \item The compute method in the DAFoamForces component calls the calcOutput() function to extract the nodal forces and assign them to the forces array. The outputName and outputType are defined in outputInfo in runScript.py
-  \item The compute\_jacvec\_product method in DAFoamForces component calls the calcJacTVecProduct() function to compute partial derivatives 
+  \item The compute\_jacvec\_product method in DAFoamForces component calls the calcJacTVecProduct() function to compute partial derivatives of all the outputs wrt all the inputs.
+  \item We then need to add this new coupling component to the DAFoamGroup group in dafoam/mphys/mphys\_dafoam.py. Check here for \href{https://github.com/mdolab/dafoam/blob/27d7279e32e62fa2c65399f3441836aefc8401c5/dafoam/mphys/mphys_dafoam.py#L166}{\textcolor{blue}{[an example]}} of force component in aero-structural coupling.
+  \item You also need to implement how the output (e.g., force) is connected to other solver components in mphys
 \end{itemize}
 
+\end{frame}
+%---------------------------------------------------------------%
+
+
+%---------------------------------------------------------------%
+\begin{frame}[fragile]{Add a new solver}
+
+There are three main steps in adding a new solver
+\begin{itemize}
+  \setlength\itemsep{0.5em}
+  \item Create a new child class in srd/adjoint/DAStateInfo, which defines all the state variables and their connection.
+  \item Create a new child class in srd/adjoint/DAResidual, which implements the residual computation for this new solver
+  \item Create a new child class in srd/adjoint/DASolver, which implement the primal solution, the solve\_nonlinear() call in DAFoamSolver
+\end{itemize}
+
+You can take the existing solver's .C and .H files as reference to add a new solver.
+  
 \end{frame}
 %---------------------------------------------------------------%
 
