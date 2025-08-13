@@ -161,9 +161,9 @@ class Top(Multipoint):
         self.dvs.add_output("fv_source", val=np.zeros(nCells * 3))
         # manually connect the dvs output to the geometry and scenario1
         self.connect("shape", "geometry.shape")
-        self.connect("beta", "cruise.beta")
-        self.connect("fv_source", "cruise.fv_source")
-        self.connect("u_in", "cruise.u_in")
+        self.connect("beta", "scenario1.beta")
+        self.connect("fv_source", "scenario1.fv_source")
+        self.connect("u_in", "scenario1.u_in")
 
         # define the design variables to the top level
         self.add_design_var("shape", lower=-10.0, upper=10.0, scaler=1.0)
