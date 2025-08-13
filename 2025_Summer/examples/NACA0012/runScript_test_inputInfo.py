@@ -85,7 +85,7 @@ daOptions = {
             "type": "patchVar",
             "varName": "U",
             "varType": "vector",
-            "patches": ["inlet"],
+            "patches": ["inout"],
             "components": ["solver", "function"],
         },
     },
