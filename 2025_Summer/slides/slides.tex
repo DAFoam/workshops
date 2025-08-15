@@ -93,7 +93,7 @@ After this workshop, you should be able to
  \item Examples of extending DAFoam (e.g., adding new design variables)
 \end{itemize}
 
-Note: We assume you are familiar with DAFoam v3 and will mainly focus on the new features in v4.
+Note: We assume you are familiar with DAFoam v3 and will mainly focus on the new features in v4. 
 
 \end{frame}
 %---------------------------------------------------------------%
@@ -116,13 +116,15 @@ Note: We assume you are familiar with DAFoam v3 and will mainly focus on the new
 %---------------------------------------------------------------%
 \begin{frame}{New interfaces in v4 runScript.py}
 
-DAFoam v2 scripts are completely deprecated, but v3 scripts can be used with minor changes. Let us compare runScript\_v3.py and runScript\_v4.py in examples/NACA0012
+
+
+DAFoam v2 scripts are completely deprecated, but v3 scripts can be used with minor changes. Download the DAFoam workshop repo \href{https://github.com/DAFoam/workshops}{\textcolor{blue}{[Link]}} and go to workshops/2025\_Summer/examples/NACA0012. Let us compare runScript\_v3.py and runScript\_v4.py.
 
 \begin{itemize}
 
   \item The \texttt{-task} flag is changed to be consistent with OpenMDAO
   \item \texttt{objFunc} is replaced with \texttt{function} in \texttt{daOption}.
-  \item \texttt{addToAdjoint} is no longer needed in \texttt{function}.
+  \item \texttt{addToAdjoint} and \texttt{parts} are no longer needed in \texttt{function}.
   \item \texttt{alphaName} is replaced with \texttt{patchVelocityInputName} for the angle of attack definition for force (e.g., CD and CL) \texttt{function}.
   \item \texttt{designVar} is replaced with \texttt{inputInfo} in \texttt{daOption}.
   \item The aoa function is defined in \texttt{inputInfo} instead of \texttt{configure}
@@ -140,7 +142,7 @@ DAFoam v2 scripts are completely deprecated, but v3 scripts can be used with min
   \begin{itemize}
   
     \item Each key in \texttt{inputInfo} defines an input variable for a component, specified by the \texttt{components} key. Note: one input can be connected to multiple components.
-    \item The name of the key in \texttt{inputInfo} is the name of the input for that component. Run the script and check the N2 diagram in mphys\_n2.html.
+    \item The name of the key in \texttt{inputInfo} is the name of the input for that component. Run the script and check the N2 diagram in mphys\_n2.html. If you have permission issues, run: \\ \texttt{chmod -R 750 *}
     \item The \texttt{type} key defines the type of this input. Check all available input types from examples/dafoam-4.0.2/src/adjoint/DAInput/*.H
     \item Each input type has its own customized keys, such as \texttt{patches}, \texttt{fieldName}, and \texttt{distributed}.
     \item Once an input is defined in \texttt{inputInfo}, we can connect dvs.output to it. Check line 163 in runScript\_test\_inputInto.py
@@ -313,7 +315,7 @@ Add new in/out & Ad-hoc & Standardized \\
   \setlength\itemsep{0.5em}
   \item Open a terminal and cd to workshops/2025\_Summer
  \item Create a DAFoam Docker container v4.0.2. Refer to \href{https://dafoam.github.io/mydoc_get_started_run.html}{\textcolor{blue}{[this page]}} for the commands.
- \item In the container, cd to /home/dafoam/repos/dafoam, and run
+ \item In the container, cd to \$HOME/dafoam/repos/dafoam, and run
  \begin{lstlisting}
 ./Allmake
  \end{lstlisting}
