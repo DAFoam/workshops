@@ -176,6 +176,7 @@ DAFoam v2 scripts are completely deprecated, but v3 scripts can be used with min
    Let us check runScript.py in examples/Cylinder
   
   \begin{itemize}
+  \item We can define an additional key called \texttt{timeOp} (time-operator) to use time-averaged functions.
   \item We treat the unsteady flow/adjoint solver as an explicit component in OpenMDAO (line 116).
   \item The inputs for this explicit component are defined by \texttt{add\_design\_var} and the outputs are defined in \texttt{unsteadyCompOutput}. Here, each key (e.g., obj) in \texttt{unsteadyCompOutput} is the actual function used in optimization. Their sub-keys (e.g., CD and CL) are the functions defined in \texttt{daOption-function}. If one defines more than one sub-key, these functions will be added together.  
    \item Define unsteady adjoint-related parameters in \texttt{unsteadyAdjoint}.
